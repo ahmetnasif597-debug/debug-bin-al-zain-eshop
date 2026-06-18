@@ -6,7 +6,7 @@ const router: IRouter = Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 },
+  limits: { fileSize: 4 * 1024 * 1024 },
   fileFilter(_req, file, cb) {
     if (!file.mimetype.startsWith("image/")) {
       return cb(new Error("Only image files are allowed"));
@@ -51,7 +51,7 @@ router.use(
   (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        res.status(413).json({ error: "حجم الصورة يتجاوز الحد المسموح (8MB)" });
+        res.status(413).json({ error: "حجم الصورة يتجاوز الحد المسموح (4MB)" });
         return;
       }
     }

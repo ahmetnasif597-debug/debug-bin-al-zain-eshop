@@ -10,6 +10,8 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: false,
@@ -45,6 +47,8 @@ if (process.env.REDIS_URL) {
   logger.warn("REDIS_URL not set — using in-memory session store (not suitable for production)");
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+
 app.use(
   session({
     store: sessionStore,
@@ -53,7 +57,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
+      sameSite: isProduction ? "lax" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
