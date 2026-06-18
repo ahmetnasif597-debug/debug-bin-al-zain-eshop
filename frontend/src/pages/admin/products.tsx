@@ -23,20 +23,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 
 async function uploadImageToStorage(file: File): Promise<string> {
-  const metaRes = await fetch("/api/storage/uploads/request-url", {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/storage/uploads", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type || "image/jpeg" }),
+    body: formData,
   });
-  if (!metaRes.ok) throw new Error("فشل في طلب رابط الرفع");
-  const { uploadURL, objectPath } = await metaRes.json() as { uploadURL: string; objectPath: string };
-  const putRes = await fetch(uploadURL, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type || "image/jpeg" },
-  });
-  if (!putRes.ok) throw new Error("فشل في رفع الصورة");
-  return `/api/storage${objectPath}`;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(err.error ?? "فشل في رفع الصورة");
+  }
+  const { url } = await res.json() as { url: string };
+  return url;
 }
 
 export default function AdminProducts() {

@@ -90,7 +90,7 @@ cd backend && DATABASE_URL=<your_url> npx drizzle-kit push --config drizzle.conf
 - **Backend**: Express 5, TypeScript, esbuild (bundled)
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (schemas in `backend/src/schemas/`)
-- **Images**: Replit Object Storage (GCS-backed presigned URLs)
+- **Images**: Cloudinary (cloud-based, serverless-compatible)
 - **Auth**: session-based (express-session), bcrypt for admin, SHA-256 for customers
 
 ---
@@ -102,9 +102,10 @@ cd backend && DATABASE_URL=<your_url> npx drizzle-kit push --config drizzle.conf
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
 | `ADMIN_PASSWORD_HASH` | ✅ | bcrypt hash of admin panel password |
 | `SESSION_SECRET` | optional | random string for session encryption |
-| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | optional | Replit Object Storage bucket ID |
-| `PRIVATE_OBJECT_DIR` | optional | private storage dir for uploads |
-| `PUBLIC_OBJECT_SEARCH_PATHS` | optional | public image search paths |
+| `CLOUDINARY_CLOUD_NAME` | ✅ (for uploads) | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | ✅ (for uploads) | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | ✅ (for uploads) | Cloudinary API secret |
+| `REDIS_URL` | ✅ (production) | Redis connection URL (e.g. Upstash) |
 
 ---
 
