@@ -9,7 +9,7 @@
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
     "start": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 npm run start --prefix backend\" \"npm run preview --prefix frontend\"",
     "db:push": "cd backend && npx drizzle-kit push --config drizzle.config.ts",
-    "vercel-build": "npm run build --prefix frontend"
+    "vercel-build": "npm run migrate --prefix backend && npm run build --prefix frontend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

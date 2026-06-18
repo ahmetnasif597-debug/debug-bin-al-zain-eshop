@@ -7,7 +7,9 @@
     "dev": "node build.mjs && node --enable-source-maps dist/index.mjs",
     "build": "node build.mjs",
     "start": "node --enable-source-maps dist/index.mjs",
-    "db:push": "drizzle-kit push --config drizzle.config.ts"
+    "db:push": "drizzle-kit push --config drizzle.config.ts",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "migrate": "npx tsx src/migrate.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
