@@ -8,7 +8,8 @@
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 npm run dev --prefix backend\" \"PORT=3000 BACKEND_PORT=4000 BASE_PATH=/ npm run dev --prefix frontend\"",
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
     "start": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 npm run start --prefix backend\" \"npm run preview --prefix frontend\"",
-    "db:push": "cd backend && npx drizzle-kit push --config drizzle.config.ts"
+    "db:push": "cd backend && npx drizzle-kit push --config drizzle.config.ts",
+    "vercel-build": "npm run build --prefix frontend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
