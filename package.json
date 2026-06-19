@@ -2,14 +2,16 @@
   "name": "bin-alzain",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.26.1",
   "description": "Bin Al-Zain Coffee Shop — Arabic e-commerce (React + Express + PostgreSQL)",
   "scripts": {
-    "postinstall": "npm install --prefix backend && npm install --prefix frontend",
-    "dev": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 npm run dev --prefix backend\" \"PORT=3000 BACKEND_PORT=4000 BASE_PATH=/ npm run dev --prefix frontend\"",
-    "build": "npm run build --prefix backend && npm run build --prefix frontend",
-    "start": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 npm run start --prefix backend\" \"npm run preview --prefix frontend\"",
-    "db:push": "cd backend && npx drizzle-kit push --config drizzle.config.ts",
-    "vercel-build": "npm run migrate --prefix backend && npm run build --prefix frontend"
+    "dev": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 pnpm --filter bin-alzain-backend dev\" \"PORT=3000 BACKEND_PORT=4000 BASE_PATH=/ pnpm --filter bin-alzain-frontend dev\"",
+    "build": "pnpm --filter bin-alzain-backend build && pnpm --filter bin-alzain-frontend build",
+    "start": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 pnpm --filter bin-alzain-backend start\" \"pnpm --filter bin-alzain-frontend preview\"",
+    "db:push": "pnpm --filter bin-alzain-backend db:push",
+    "migrate": "pnpm --filter bin-alzain-backend migrate",
+    "seed": "pnpm --filter bin-alzain-backend seed",
+    "vercel-build": "pnpm --filter bin-alzain-backend migrate && pnpm --filter bin-alzain-frontend build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
