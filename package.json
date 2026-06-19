@@ -10,7 +10,7 @@
     "db:push": "pnpm --filter bin-alzain-backend db:push",
     "migrate": "pnpm --filter bin-alzain-backend migrate",
     "seed": "pnpm --filter bin-alzain-backend seed",
-    "vercel-build": "pnpm --filter bin-alzain-frontend build"
+    "vercel-build": "pnpm --filter bin-alzain-frontend build && mkdir -p dist && cp -r frontend/dist/* dist/"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
