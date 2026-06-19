@@ -7,11 +7,10 @@
   "scripts": {
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 pnpm --filter bin-alzain-backend dev\" \"PORT=3000 BACKEND_PORT=4000 BASE_PATH=/ pnpm --filter bin-alzain-frontend dev\"",
     "build": "pnpm --filter bin-alzain-backend build && pnpm --filter bin-alzain-frontend build",
-    "start": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 pnpm --filter bin-alzain-backend start\" \"pnpm --filter bin-alzain-frontend preview\"",
     "db:push": "pnpm --filter bin-alzain-backend db:push",
     "migrate": "pnpm --filter bin-alzain-backend migrate",
     "seed": "pnpm --filter bin-alzain-backend seed",
-    "vercel-build": "pnpm --filter bin-alzain-frontend build"
+    "vercel-build": "pnpm --filter bin-alzain-frontend build && rm -rf public && cp -r frontend/dist public"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
