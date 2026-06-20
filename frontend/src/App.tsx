@@ -1,5 +1,5 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { useHashLocation } from "wouter/use-hash-location"; // إضافة الـ Hash Location
+import { useHashLocation } from "wouter/use-hash-location";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -61,7 +61,7 @@ function Router() {
     <Switch>
       {/* Admin Routes */}
       <Route path="/admin">
-            <AdminDashboard />
+        <AdminDashboard />
       </Route>
       <Route path="/admin/products">
         <AdminGuard>
