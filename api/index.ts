@@ -1,3 +1,3 @@
 // @ts-ignore
-import app from "../../bin-alzain-backend/src/app";
+import app from "../backend/src/app";
 export default app;
