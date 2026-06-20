@@ -6,7 +6,7 @@
   "description": "Bin Al-Zain Coffee Shop — Arabic e-commerce (React + Express + PostgreSQL)",
   "scripts": {
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,green\" --kill-others-on-fail \"PORT=4000 pnpm --filter bin-alzain-backend dev\" \"PORT=3000 BACKEND_PORT=4000 BASE_PATH=/ pnpm --filter bin-alzain-frontend dev\"",
-    "build": "pnpm --filter bin-alzain-backend build && pnpm --filter bin-alzain-frontend build",
+    "build": "pnpm --filter bin-alzain-frontend build",
     "db:push": "pnpm --filter bin-alzain-backend db:push",
     "migrate": "pnpm --filter bin-alzain-backend migrate",
     "seed": "pnpm --filter bin-alzain-backend seed",
