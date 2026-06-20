@@ -1,3 +1,2 @@
-import app from "../backend/src/app";
-
+import app from "../bin-alzain-backend/src/app";
 export default app;
