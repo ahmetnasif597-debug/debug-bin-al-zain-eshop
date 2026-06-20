@@ -1,0 +1,4 @@
+{
+  "rootDirectory": "frontend",
+  "installCommand": "corepack enable && pnpm install"
+}
