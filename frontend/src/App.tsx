@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location"; // إضافة الـ Hash Location
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -148,7 +149,7 @@ function App() {
         <StoreStatusProvider>
           <CartProvider>
             <AdminProvider>
-              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <WouterRouter hook={useHashLocation}>
                 <Router />
               </WouterRouter>
               <Toaster />
