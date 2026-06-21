@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "noImplicitAny": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "types": ["node", "express"]
   },
   "include": ["src"]
 }
