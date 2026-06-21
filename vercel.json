@@ -1,15 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "frontend/api/index.ts",
-      "use": "@vercel/node"
+  "functions": {
+    "frontend/api/*.ts": {
+      "includeFiles": "backend/**"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "frontend/api/index.ts"
-    }
-  ]
+  }
 }
