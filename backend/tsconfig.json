@@ -2,16 +2,15 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "esnext",
-    "moduleResolution": "bundler",
-    "lib": ["es2022"],
+    "moduleResolution": "node",
     "outDir": "dist",
     "rootDir": "src",
-    "strict": false,            
-    "noImplicitAny": false,     // <-- هذا التغيير هو الأهم لحل أخطاء TS7006
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
     "skipLibCheck": true,
-    "isolatedModules": true,
-    "strictNullChecks": false,  // يُفضل جعله false أيضاً لتقليل الأخطاء
+    "esModuleInterop": true,
     "types": ["node", "express"]
   },
-  "include": ["src"]
+  "include": ["src/**/*"]
 }
