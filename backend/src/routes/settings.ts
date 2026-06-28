@@ -7,7 +7,7 @@ const router = Router();
 const STORE_STATUS_KEY = "store_status";
 type StoreStatus = "open" | "pickup_only" | "closed";
 
-router.get("/settings/store-status", async (req, res) => {
+router.get("/settings/store-status", async (req: any, res: any) => {
   try {
     const [row] = await db.select().from(settingsTable).where(eq(settingsTable.key, STORE_STATUS_KEY));
     return res.json({ status: (row?.value ?? "open") as StoreStatus });
@@ -17,7 +17,7 @@ router.get("/settings/store-status", async (req, res) => {
   }
 });
 
-router.put("/settings/store-status", async (req, res) => {
+router.put("/settings/store-status", async (req: any, res: any) => {
   if (!req.session.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
