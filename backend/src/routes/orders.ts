@@ -11,8 +11,7 @@ import {
 
 const router = Router();
 
-// GET /admin/orders/new-since?since=<ISO_DATE> — returns new orders count since timestamp (admin only)
-router.get("/admin/orders/new-since", async (req, res) => {
+router.get("/admin/orders/new-since", async (req: any, res: any) => {
   if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
   try {
     const since = req.query.since ? new Date(req.query.since as string) : new Date(0);
@@ -35,7 +34,7 @@ router.get("/admin/orders/new-since", async (req, res) => {
   }
 });
 
-router.get("/orders", async (req, res) => {
+router.get("/orders", async (req: any, res: any) => {
   try {
     const params = ListOrdersQueryParams.parse({ status: req.query.status });
     const orders = await db
@@ -52,7 +51,7 @@ router.get("/orders", async (req, res) => {
   }
 });
 
-router.post("/orders", async (req, res) => {
+router.post("/orders", async (req: any, res: any) => {
   try {
     const body = CreateOrderBody.parse(req.body);
     const [order] = await db
@@ -84,7 +83,7 @@ router.post("/orders", async (req, res) => {
   }
 });
 
-router.get("/orders/:id", async (req, res) => {
+router.get("/orders/:id", async (req: any, res: any) => {
   try {
     const { id } = GetOrderParams.parse({ id: Number(req.params.id) });
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id));
@@ -96,7 +95,7 @@ router.get("/orders/:id", async (req, res) => {
   }
 });
 
-router.patch("/orders/:id", async (req, res) => {
+router.patch("/orders/:id", async (req: any, res: any) => {
   try {
     const { id } = UpdateOrderStatusParams.parse({ id: Number(req.params.id) });
     const body = UpdateOrderStatusBody.parse(req.body);
