@@ -1,4 +1,5 @@
 {
+  "buildCommand": "pnpm --filter bin-alzain-frontend build && pnpm --filter bin-alzain-backend build",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
