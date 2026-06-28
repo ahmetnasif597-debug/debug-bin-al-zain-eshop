@@ -1,56 +1,50 @@
 import { Router } from "express";
-import type { NextFunction } from "express";
-import multer from "multer";
-import { uploadBufferToCloudinary, isCloudinaryConfigured } from "../lib/cloudinary";
+import { db } from "../db";
+import { categoriesTable } from "../db/schema/categories";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 4 * 1024 * 1024 },
-  fileFilter(_req, file, cb) {
-    if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Only image files are allowed"));
-    }
-    cb(null, true);
-  },
+router.get("/categories", async (_req: any, res: any) => {
+  try {
+    const all = await db.select().from(categoriesTable);
+    res.json(all);
+  } catch (error) {
+    res.status(500).json({ error: "فشل في جلب الفئات" });
+  }
 });
 
-router.post(
-  "/storage/uploads",
-  upload.single("file"),
-  async (req: any, res: any) => {
-    if (!req.file) {
-      res.status(400).json({ error: "لم يتم إرفاق ملف" });
-      return;
-    }
-    if (!isCloudinaryConfigured()) {
-      res.status(503).json({
-        error: "خدمة رفع الصور غير مهيأة. يرجى ضبط متغيرات Cloudinary في البيئة.",
-      });
-      return;
-    }
-    try {
-      const url = await uploadBufferToCloudinary(req.file.buffer);
-      res.json({ url });
-    } catch (error) {
-      req.log.error({ err: error }, "Cloudinary upload failed");
-      res.status(500).json({ error: "فشل في رفع الصورة" });
-    }
+router.post("/categories", async (req: any, res: any) => {
+  try {
+    const { nameAr, nameEn, slug, icon, imageUrl, rowNumber } = req.body;
+    const [cat] = await db.insert(categoriesTable).values({
+      nameAr, nameEn, slug, icon: icon || "🛒", imageUrl, rowNumber: rowNumber || 1
+    }).returning();
+    res.json(cat);
+  } catch (error) {
+    res.status(500).json({ error: "فشل في إضافة الفئة" });
   }
-);
+});
 
-router.use(
-  "/storage/uploads",
-  (err: unknown, _req: any, res: any, _next: NextFunction) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === "LIMIT_FILE_SIZE") {
-        res.status(413).json({ error: "حجم الصورة يتجاوز الحد المسموح (4MB)" });
-        return;
-      }
-    }
-    res.status(400).json({ error: err instanceof Error ? err.message : "خطأ في رفع الملف" });
+router.put("/categories/:id", async (req: any, res: any) => {
+  try {
+    const { nameAr, nameEn, slug, icon, imageUrl, rowNumber } = req.body;
+    const [cat] = await db.update(categoriesTable).set({
+      nameAr, nameEn, slug, icon: icon || "🛒", imageUrl, rowNumber: rowNumber || 1
+    }).where(eq(categoriesTable.id, Number(req.params.id))).returning();
+    res.json(cat);
+  } catch (error) {
+    res.status(500).json({ error: "فشل في تعديل الفئة" });
   }
-);
+});
+
+router.delete("/categories/:id", async (req: any, res: any) => {
+  try {
+    await db.delete(categoriesTable).where(eq(categoriesTable.id, Number(req.params.id)));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "فشل في حذف الفئة" });
+  }
+});
 
 export default router;
