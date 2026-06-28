@@ -16,15 +16,4 @@ router.get("/categories", async (_req: any, res: any) => {
 router.post("/categories", async (req: any, res: any) => {
   try {
     const { nameAr, nameEn, slug, icon, imageUrl, rowNumber } = req.body;
-    const [cat] = await db.insert(categoriesTable).values({
-      nameAr, nameEn, slug, icon: icon || "🛒", imageUrl, rowNumber: rowNumber || 1
-    }).returning();
-    res.json(cat);
-  } catch (error) {
-    res.status(500).json({ error: "فشل في إضافة الفئة" });
-  }
-});
-
-router.put("/categories/:id", async (req: any, res: any) => {
-  try {
-    const { nameAr, nameEn, slug, icon
+    const [cat] =
