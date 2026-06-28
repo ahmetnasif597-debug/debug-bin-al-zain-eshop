@@ -1,10 +1,11 @@
-import { useGetAdminStats, useListOrders, getListOrdersQueryKey } from "@/lib/api-client";
-import { Package, Tags, ShoppingBag, AlertCircle, Clock } from "lucide-react";
+import { useGetAdminStats, useListOrders } from "@/lib/api-client";
+import { Package, Tags, ShoppingBag, AlertCircle, Clock, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { useEffect, useRef, useState } from "react";
 
 const STATUS_MAP = {
   pending: { label: "معلق", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
@@ -13,13 +14,61 @@ const STATUS_MAP = {
   cancelled: { label: "ملغي", color: "bg-red-500 hover:bg-red-600 text-white" },
 };
 
+function useNewOrderNotification() {
+  const lastChecked = useRef<string>(new Date().toISOString());
+  const [newOrders, setNewOrders] = useState<any[]>([]);
+
+  useEffect(() => {
+    // طلب إذن الإشعارات
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/orders/new-since?since=${lastChecked.current}`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.count > 0) {
+          setNewOrders(data.orders);
+          // إشعار المتصفح
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("🛒 طلب جديد - بن الزين", {
+              body: `وصل ${data.count} طلب جديد!`,
+              icon: "/favicon.ico",
+            });
+          }
+          lastChecked.current = new Date().toISOString();
+        }
+      } catch {}
+    }, 15000); // كل 15 ثانية
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return newOrders;
+}
+
 export default function Dashboard() {
   const { data: stats, isLoading: loadingStats } = useGetAdminStats();
-  const { data: recentOrders, isLoading: loadingOrders } = useListOrders(); // API returns descending by date usually
+  const { data: recentOrders, isLoading: loadingOrders } = useListOrders();
+  const newOrders = useNewOrderNotification();
 
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-black text-foreground">نظرة عامة</h1>
+
+      {/* إشعار طلب جديد */}
+      {newOrders.length > 0 && (
+        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/50 rounded-xl p-4 flex items-center gap-3 animate-pulse">
+          <Bell className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <p className="font-bold text-green-800 dark:text-green-300">
+            🛒 وصل {newOrders.length} طلب جديد! راجع صفحة الطلبات.
+          </p>
+        </div>
+      )}
 
       {loadingStats ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
