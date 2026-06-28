@@ -13,7 +13,7 @@ function normalizePhone(phone: string): string {
   return phone.replace(/\s+/g, "").trim();
 }
 
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", async (req: any, res: any) => {
   try {
     const { fullName, phone, password } = req.body;
     if (!fullName || !phone || !password) {
@@ -43,7 +43,7 @@ router.post("/auth/register", async (req, res) => {
   }
 });
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", async (req: any, res: any) => {
   try {
     const { phone, password } = req.body;
     if (!phone || !password) {
@@ -68,13 +68,13 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
-router.post("/auth/logout", (req, res) => {
+router.post("/auth/logout", (req: any, res: any) => {
   req.session.customerId = undefined;
   req.session.customerName = undefined;
   return res.json({ authenticated: false });
 });
 
-router.get("/auth/me", async (req, res) => {
+router.get("/auth/me", async (req: any, res: any) => {
   if (!req.session.customerId) {
     return res.status(401).json({ error: "غير مسجل الدخول" });
   }
@@ -96,7 +96,7 @@ router.get("/auth/me", async (req, res) => {
   }
 });
 
-router.patch("/auth/profile", async (req, res) => {
+router.patch("/auth/profile", async (req: any, res: any) => {
   if (!req.session.customerId) {
     return res.status(401).json({ error: "غير مسجل الدخول" });
   }
