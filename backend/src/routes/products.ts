@@ -1,5 +1,4 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
 import { db, productsTable, categoriesTable } from "../db";
 import { eq, and, ilike, or } from "drizzle-orm";
 import {
@@ -144,9 +143,14 @@ router.put("/products/:id", async (req: any, res: any) => {
     const [existing] = await db.select().from(productsTable).where(eq(productsTable.id, id));
     if (!existing) return res.status(404).json({ error: "Product not found" });
 
+    const updateData: any = { ...body };
+    if (body.price !== undefined) {
+      updateData.price = String(body.price);
+    }
+
     await db
       .update(productsTable)
-      .set({ ...body, price: String(body.price) })
+      .set(updateData)
       .where(eq(productsTable.id, id));
 
     const [product] = await db
