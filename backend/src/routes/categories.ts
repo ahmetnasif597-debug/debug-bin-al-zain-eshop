@@ -1,82 +1,56 @@
 import { Router } from "express";
-import { db, categoriesTable } from "../db";
-import { eq } from "drizzle-orm";
-import { GetCategoryParams, CreateCategoryBody, UpdateCategoryBody } from "../schemas";
+import type { NextFunction } from "express";
+import multer from "multer";
+import { uploadBufferToCloudinary, isCloudinaryConfigured } from "../lib/cloudinary";
 
 const router = Router();
 
-function requireAdmin(req: any, res: any): boolean {
-  if (!req.session.isAdmin) {
-    res.status(401).json({ error: "Unauthorized" });
-    return false;
-  }
-  return true;
-}
-
-router.get("/categories", async (req, res) => {
-  try {
-    const categories = await db.select().from(categoriesTable).orderBy(categoriesTable.id);
-    return res.json(categories);
-  } catch (err) {
-    req.log.error({ err }, "Failed to list categories");
-    return res.status(500).json({ error: "Internal server error" });
-  }
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image files are allowed"));
+    }
+    cb(null, true);
+  },
 });
 
-router.post("/categories", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  try {
-    const body = CreateCategoryBody.parse(req.body);
-    const [category] = await db.insert(categoriesTable).values(body).returning();
-    return res.status(201).json(category);
-  } catch (err) {
-    req.log.error({ err }, "Failed to create category");
-    return res.status(500).json({ error: "Internal server error" });
+router.post(
+  "/storage/uploads",
+  upload.single("file"),
+  async (req: any, res: any) => {
+    if (!req.file) {
+      res.status(400).json({ error: "لم يتم إرفاق ملف" });
+      return;
+    }
+    if (!isCloudinaryConfigured()) {
+      res.status(503).json({
+        error: "خدمة رفع الصور غير مهيأة. يرجى ضبط متغيرات Cloudinary في البيئة.",
+      });
+      return;
+    }
+    try {
+      const url = await uploadBufferToCloudinary(req.file.buffer);
+      res.json({ url });
+    } catch (error) {
+      req.log.error({ err: error }, "Cloudinary upload failed");
+      res.status(500).json({ error: "فشل في رفع الصورة" });
+    }
   }
-});
+);
 
-router.get("/categories/:id", async (req, res) => {
-  try {
-    const { id } = GetCategoryParams.parse({ id: Number(req.params.id) });
-    const [category] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, id));
-    if (!category) return res.status(404).json({ error: "Category not found" });
-    return res.json(category);
-  } catch (err) {
-    req.log.error({ err }, "Failed to get category");
-    return res.status(500).json({ error: "Internal server error" });
+router.use(
+  "/storage/uploads",
+  (err: unknown, _req: any, res: any, _next: NextFunction) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        res.status(413).json({ error: "حجم الصورة يتجاوز الحد المسموح (4MB)" });
+        return;
+      }
+    }
+    res.status(400).json({ error: err instanceof Error ? err.message : "خطأ في رفع الملف" });
   }
-});
-
-router.put("/categories/:id", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  try {
-    const { id } = GetCategoryParams.parse({ id: Number(req.params.id) });
-    const body = UpdateCategoryBody.parse(req.body);
-    const [existing] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, id));
-    if (!existing) return res.status(404).json({ error: "Category not found" });
-
-    const [category] = await db
-      .update(categoriesTable)
-      .set(body)
-      .where(eq(categoriesTable.id, id))
-      .returning();
-    return res.json(category);
-  } catch (err) {
-    req.log.error({ err }, "Failed to update category");
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-router.delete("/categories/:id", async (req, res) => {
-  if (!requireAdmin(req, res)) return;
-  try {
-    const { id } = GetCategoryParams.parse({ id: Number(req.params.id) });
-    await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
-    return res.status(204).send();
-  } catch (err) {
-    req.log.error({ err }, "Failed to delete category");
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
+);
 
 export default router;
