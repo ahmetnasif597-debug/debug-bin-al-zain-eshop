@@ -30,7 +30,7 @@ const loginLimiter = rateLimit({
   message: { error: "عدد محاولات تسجيل الدخول تجاوز الحد المسموح، الرجاء المحاولة بعد 15 دقيقة" },
 });
 
-router.post("/admin/login", loginLimiter, async (req, res) => {
+router.post("/admin/login", loginLimiter, async (req: any, res: any) => {
   try {
     const { password } = AdminLoginBody.parse(req.body);
     const valid = await verifyAdminPassword(password);
@@ -45,20 +45,20 @@ router.post("/admin/login", loginLimiter, async (req, res) => {
   }
 });
 
-router.post("/admin/logout", (req, res) => {
+router.post("/admin/logout", (req: any, res: any) => {
   req.session.destroy(() => {
     res.json({ authenticated: false });
   });
 });
 
-router.get("/admin/me", (req, res) => {
+router.get("/admin/me", (req: any, res: any) => {
   if (req.session.isAdmin) {
     return res.json({ authenticated: true });
   }
   return res.status(401).json({ authenticated: false });
 });
 
-router.get("/admin/stats", async (req, res) => {
+router.get("/admin/stats", async (req: any, res: any) => {
   if (!req.session.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -88,7 +88,7 @@ router.get("/admin/stats", async (req, res) => {
   }
 });
 
-router.get("/admin/customers", async (req, res) => {
+router.get("/admin/customers", async (req: any, res: any) => {
   if (!req.session.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -110,7 +110,7 @@ router.get("/admin/customers", async (req, res) => {
   }
 });
 
-router.post("/admin/customers/:id/reset-password", async (req, res) => {
+router.post("/admin/customers/:id/reset-password", async (req: any, res: any) => {
   if (!req.session.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
