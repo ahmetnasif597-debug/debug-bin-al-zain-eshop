@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import { db, productsTable, categoriesTable } from "../db";
 import { eq, and, ilike, or } from "drizzle-orm";
 import {
@@ -38,7 +39,7 @@ const productSelect = {
   availableFlavors: productsTable.availableFlavors,
 };
 
-router.get("/products/featured", async (req, res) => {
+router.get("/products/featured", async (req: any, res: any) => {
   try {
     const products = await db
       .select(productSelect)
@@ -54,7 +55,7 @@ router.get("/products/featured", async (req, res) => {
   }
 });
 
-router.get("/products", async (req, res) => {
+router.get("/products", async (req: any, res: any) => {
   try {
     const params = ListProductsQueryParams.parse({
       categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
@@ -88,7 +89,7 @@ router.get("/products", async (req, res) => {
   }
 });
 
-router.get("/products/:id", async (req, res) => {
+router.get("/products/:id", async (req: any, res: any) => {
   try {
     const { id } = GetProductParams.parse({ id: Number(req.params.id) });
     const [product] = await db
@@ -105,7 +106,7 @@ router.get("/products/:id", async (req, res) => {
   }
 });
 
-router.post("/products", async (req, res) => {
+router.post("/products", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;
   try {
     const body = CreateProductBody.parse(req.body);
@@ -134,7 +135,7 @@ router.post("/products", async (req, res) => {
   }
 });
 
-router.put("/products/:id", async (req, res) => {
+router.put("/products/:id", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;
   try {
     const { id } = GetProductParams.parse({ id: Number(req.params.id) });
@@ -161,7 +162,7 @@ router.put("/products/:id", async (req, res) => {
   }
 });
 
-router.delete("/products/:id", async (req, res) => {
+router.delete("/products/:id", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;
   try {
     const { id } = GetProductParams.parse({ id: Number(req.params.id) });
