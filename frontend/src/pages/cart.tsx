@@ -54,9 +54,41 @@ export default function Cart() {
     }
   }, [name, phone, address, remember]);
 
-  const handleWhatsAppCheckout = () => {
+  const handleWhatsAppCheckout = async () => {
     const phoneNumber = "963962823756";
 
+    // حفظ الطلب في قاعدة البيانات
+    try {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          customerName: name || null,
+          customerPhone: phone || null,
+          notes: `العنوان: ${address || "—"} | طريقة الاستلام: ${delivery === "home" ? "توصيل للمنزل" : "استلام من المحل"}`,
+          totalPrice,
+          items: items.map((item) => {
+            const unitPrice =
+              item.selectedWeight && item.product.soldByWeight
+                ? (item.selectedWeight / 1000) * item.product.price
+                : item.product.price;
+            return {
+              productId: item.product.id,
+              nameAr: item.product.nameAr,
+              price: unitPrice,
+              quantity: item.quantity,
+              selectedWeight: item.selectedWeight ?? null,
+              lineTotal: unitPrice * item.quantity,
+            };
+          }),
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save order:", err);
+    }
+
+    // فتح واتساب
     let orderItems = "";
     items.forEach((item) => {
       const weightText = item.selectedWeight
