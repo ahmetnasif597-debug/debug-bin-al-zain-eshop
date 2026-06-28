@@ -1,8 +1,9 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { Router } from "express";
+import type { NextFunction } from "express";
 import multer from "multer";
 import { uploadBufferToCloudinary, isCloudinaryConfigured } from "../lib/cloudinary";
 
-const router: IRouter = Router();
+const router = Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -15,17 +16,10 @@ const upload = multer({
   },
 });
 
-/**
- * POST /storage/uploads
- *
- * Upload an image directly to Cloudinary.
- * Expects multipart/form-data with a "file" field.
- * Returns { url } — the permanent Cloudinary HTTPS URL.
- */
 router.post(
   "/storage/uploads",
   upload.single("file"),
-  async (req: Request, res: Response) => {
+  async (req: any, res: any) => {
     if (!req.file) {
       res.status(400).json({ error: "لم يتم إرفاق ملف" });
       return;
@@ -48,7 +42,7 @@ router.post(
 
 router.use(
   "/storage/uploads",
-  (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  (err: unknown, _req: any, res: any, _next: NextFunction) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
         res.status(413).json({ error: "حجم الصورة يتجاوز الحد المسموح (4MB)" });
