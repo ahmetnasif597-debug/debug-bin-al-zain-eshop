@@ -61,7 +61,11 @@ function Router() {
     <Switch>
       {/* Admin Routes */}
       <Route path="/admin">
-        <AdminDashboard />
+        <AdminGuard>
+          <AdminLayout>
+            <AdminDashboard />
+          </AdminLayout>
+        </AdminGuard>
       </Route>
       <Route path="/admin/products">
         <AdminGuard>
