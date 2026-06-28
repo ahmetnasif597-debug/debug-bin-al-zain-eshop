@@ -5,10 +5,9 @@ import session from "express-session";
 import helmet from "helmet";
 import { createClient } from "redis";
 import { RedisStore } from "connect-redis";
-import router from "./routes";
-import { logger } from "./lib/logger";
+import router from "./routes/index.js";
+import { logger } from "./lib/logger.js";
 
-// Use 'any' to bypass strict type checking issues during build
 const app: any = express();
 
 app.set("trust proxy", 1);
