@@ -3,8 +3,9 @@ import { useStoreStatus } from "@/context/store-status-context";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, Minus, ShoppingBag, Truck, Store, User, Phone, MapPin, XCircle } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, Truck, Store, User, Phone, MapPin, XCircle, LogIn } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const STORAGE_KEY = "binalzain_customer_info";
 
@@ -16,9 +17,23 @@ function loadSaved(): { name: string; phone: string; address: string; remember: 
   return { name: "", phone: "", address: "", remember: false };
 }
 
+function useCurrentUser() {
+  return useQuery({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export default function Cart() {
   const { items, updateQuantity, updateFlavorBreakdown, removeItem, totalPrice, clearCart } = useCart();
   const { status: storeStatus } = useStoreStatus();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const saved = loadSaved();
   const [name, setName] = useState(saved.name);
@@ -359,20 +374,34 @@ export default function Cart() {
                 <XCircle className="w-4 h-4 flex-shrink-0" />
                 المتجر مغلق حالياً، لا يمكن إتمام الطلبات في هذا الوقت.
               </div>
-            ) : (
-              <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-6 border border-green-200 dark:border-green-900/50">
-                سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد العنوان ووقت التوصيل.
+            ) : !userLoading && !user ? (
+              <div className="space-y-3">
+                <div className="bg-yellow-50 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-300 p-4 rounded-xl text-sm font-semibold border border-yellow-200 dark:border-yellow-900/50 flex items-center gap-2">
+                  <LogIn className="w-4 h-4 flex-shrink-0" />
+                  يجب تسجيل الدخول أولاً لإتمام الطلب
+                </div>
+                <Button size="lg" className="w-full h-14 text-lg font-bold gap-2" asChild>
+                  <Link href="/login">
+                    <LogIn className="w-5 h-5" />
+                    تسجيل الدخول
+                  </Link>
+                </Button>
               </div>
+            ) : (
+              <>
+                <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-6 border border-green-200 dark:border-green-900/50">
+                  سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد العنوان ووقت التوصيل.
+                </div>
+                <Button
+                  size="lg"
+                  disabled={storeStatus === "closed"}
+                  className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleWhatsAppCheckout}
+                >
+                  اطلب عبر واتساب
+                </Button>
+              </>
             )}
-
-            <Button
-              size="lg"
-              disabled={storeStatus === "closed"}
-              className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleWhatsAppCheckout}
-            >
-              اطلب عبر واتساب
-            </Button>
           </div>
         </div>
       </div>
