@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, notificationsTable, notificationReadsTable, customersTable } from "../db";
-import { eq, and, or, isNull, inArray, desc, notInArray } from "drizzle-orm";
+import { eq, and, or, isNull, inArray, desc } from "drizzle-orm";
 
 const router = Router();
 
@@ -20,8 +20,7 @@ function requireAdmin(req: any, res: any): boolean {
   return true;
 }
 
-// GET /notifications — for logged-in customer: broadcast + targeted notifications with read status
-router.get("/notifications", async (req, res) => {
+router.get("/notifications", async (req: any, res: any) => {
   if (!requireCustomer(req, res)) return;
   const customerId = req.session.customerId!;
   try {
@@ -61,8 +60,7 @@ router.get("/notifications", async (req, res) => {
   }
 });
 
-// POST /notifications/read-all — mark all unread as read
-router.post("/notifications/read-all", async (req, res) => {
+router.post("/notifications/read-all", async (req: any, res: any) => {
   if (!requireCustomer(req, res)) return;
   const customerId = req.session.customerId!;
   try {
@@ -99,8 +97,7 @@ router.post("/notifications/read-all", async (req, res) => {
   }
 });
 
-// POST /notifications/read/:id — mark single notification as read
-router.post("/notifications/read/:id", async (req, res) => {
+router.post("/notifications/read/:id", async (req: any, res: any) => {
   if (!requireCustomer(req, res)) return;
   const customerId = req.session.customerId!;
   const notificationId = Number(req.params.id);
@@ -126,10 +123,7 @@ router.post("/notifications/read/:id", async (req, res) => {
   }
 });
 
-// --- ADMIN ROUTES ---
-
-// GET /admin/notifications — list all notifications
-router.get("/admin/notifications", async (req, res) => {
+router.get("/admin/notifications", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;
   try {
     const notifications = await db
@@ -158,8 +152,7 @@ router.get("/admin/notifications", async (req, res) => {
   }
 });
 
-// POST /admin/notifications — create a notification
-router.post("/admin/notifications", async (req, res) => {
+router.post("/admin/notifications", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;
   try {
     const { type, title, body, customerId } = req.body;
@@ -190,8 +183,7 @@ router.post("/admin/notifications", async (req, res) => {
   }
 });
 
-// DELETE /admin/notifications/:id
-router.delete("/admin/notifications/:id", async (req, res) => {
+router.delete("/admin/notifications/:id", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;
   const id = Number(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
