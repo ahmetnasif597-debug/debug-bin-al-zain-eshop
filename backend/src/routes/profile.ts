@@ -4,7 +4,7 @@ import { eq, desc } from "drizzle-orm";
 
 const router = Router();
 
-router.get("/profile/orders", async (req, res) => {
+router.get("/profile/orders", async (req: any, res: any) => {
   if (!req.session.customerId) {
     return res.status(401).json({ error: "غير مسجل الدخول" });
   }
