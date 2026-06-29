@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Plus, Minus, ShoppingBag, Truck, Store, User, Phone, MapPin, XCircle, LogIn, Navigation, CheckCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 const STORAGE_KEY = "binalzain_customer_info";
@@ -82,7 +82,27 @@ export default function Cart() {
     );
   };
 
+  const [validationError, setValidationError] = useState<string>("");
+  const errorRef = useRef<HTMLDivElement>(null);
+
   const handleWhatsAppCheckout = async () => {
+    if (!name.trim()) {
+      setValidationError("الرجاء إدخال الاسم الكامل");
+      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      return;
+    }
+    if (!phone.trim()) {
+      setValidationError("الرجاء إدخال رقم الهاتف");
+      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      return;
+    }
+    if (delivery === "home" && locationStatus !== "success") {
+      setValidationError("الرجاء إرسال موقعك من الخريطة");
+      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      return;
+    }
+    setValidationError("");
+
     const phoneNumber = "963962823756";
 
     const locationText = locationCoords
@@ -487,6 +507,12 @@ export default function Cart() {
               </div>
             ) : (
               <>
+                {validationError && (
+                  <div ref={errorRef} className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm font-semibold mb-3 border border-red-200 dark:border-red-900/50 flex items-center gap-2">
+                    <XCircle className="w-4 h-4 flex-shrink-0" />
+                    {validationError}
+                  </div>
+                )}
                 <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-6 border border-green-200 dark:border-green-900/50">
                   سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد وقت التوصيل.
                 </div>
