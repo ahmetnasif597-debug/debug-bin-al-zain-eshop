@@ -22,7 +22,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: React.Rea
     icon: <Clock className="w-3.5 h-3.5" />,
   },
   confirmed: {
-    label: "مؤكد",
+    label: "جاري التوصيل",
     color: "text-blue-600 bg-blue-50 border-blue-200",
     icon: <Truck className="w-3.5 h-3.5" />,
   },
