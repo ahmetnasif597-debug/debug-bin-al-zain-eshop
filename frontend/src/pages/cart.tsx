@@ -3,18 +3,21 @@ import { useStoreStatus } from "@/context/store-status-context";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, Minus, ShoppingBag, Truck, Store, User, Phone, MapPin, XCircle, LogIn } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, Truck, Store, User, Phone, MapPin, XCircle, LogIn, Navigation, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 const STORAGE_KEY = "binalzain_customer_info";
 
-function loadSaved(): { name: string; phone: string; address: string; remember: boolean } {
+function loadSaved(): { name: string; phone: string; remember: boolean } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { name: parsed.name || "", phone: parsed.phone || "", remember: parsed.remember || false };
+    }
   } catch {}
-  return { name: "", phone: "", address: "", remember: false };
+  return { name: "", phone: "", remember: false };
 }
 
 function useCurrentUser() {
@@ -38,9 +41,13 @@ export default function Cart() {
   const saved = loadSaved();
   const [name, setName] = useState(saved.name);
   const [phone, setPhone] = useState(saved.phone);
-  const [address, setAddress] = useState(saved.address);
   const [remember, setRemember] = useState(saved.remember);
   const [delivery, setDelivery] = useState<"home" | "pickup">(storeStatus === "pickup_only" ? "pickup" : "home");
+
+  // Location state
+  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string>("");
 
   useEffect(() => {
     if (storeStatus === "pickup_only") setDelivery("pickup");
@@ -48,14 +55,39 @@ export default function Cart() {
 
   useEffect(() => {
     if (remember) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, phone, address, remember: true }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, phone, remember: true }));
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [name, phone, address, remember]);
+  }, [name, phone, remember]);
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("المتصفح لا يدعم تحديد الموقع");
+      setLocationStatus("error");
+      return;
+    }
+    setLocationStatus("loading");
+    setLocationError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocationCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocationStatus("success");
+      },
+      (err) => {
+        setLocationError("لم يتم السماح بالوصول للموقع، تأكد من إذن الموقع في المتصفح");
+        setLocationStatus("error");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleWhatsAppCheckout = async () => {
     const phoneNumber = "963962823756";
+
+    const locationText = locationCoords
+      ? `https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`
+      : "—";
 
     // حفظ الطلب في قاعدة البيانات
     try {
@@ -66,7 +98,7 @@ export default function Cart() {
         body: JSON.stringify({
           customerName: name || null,
           customerPhone: phone || null,
-          notes: `العنوان: ${address || "—"} | طريقة الاستلام: ${delivery === "home" ? "توصيل للمنزل" : "استلام من المحل"}`,
+          notes: `الموقع: ${locationText} | طريقة الاستلام: ${delivery === "home" ? "توصيل للمنزل" : "استلام من المحل"}`,
           totalPrice,
           items: items.map((item) => {
             const unitPrice =
@@ -112,8 +144,10 @@ export default function Cart() {
     message += `👤 *بيانات الزبون:*\n`;
     message += `الاسم: ${name || "—"}\n`;
     message += `رقم الهاتف: ${phone || "—"}\n`;
-    message += `العنوان: ${address || "—"}\n\n`;
-    message += `🛒 *تفاصيل الطلب:*\n`;
+    if (delivery === "home") {
+      message += `📍 الموقع: ${locationText}\n`;
+    }
+    message += `\n🛒 *تفاصيل الطلب:*\n`;
     message += orderItems;
     message += `\n📦 *طريقة الاستلام:* ${deliveryMethod}\n`;
     message += `💰 *المجموع النهائي:* ${totalPrice.toLocaleString("ar-SY")} ل.س`;
@@ -321,21 +355,53 @@ export default function Cart() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
-                  عنوان التوصيل
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute right-3 top-3 w-4 h-4 text-muted-foreground" />
-                  <textarea
-                    placeholder="عنوان التوصيل"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    rows={2}
-                    className="w-full rounded-xl border border-input bg-background pr-10 pl-3 py-2.5 text-sm font-medium text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
-                  />
+              {/* Location Button - only shown for home delivery */}
+              {delivery === "home" && (
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
+                    موقع التوصيل
+                  </label>
+                  <button
+                    onClick={handleGetLocation}
+                    disabled={locationStatus === "loading"}
+                    className={`w-full rounded-xl border flex items-center gap-3 px-3 py-3 text-sm font-medium transition-all text-right ${
+                      locationStatus === "success"
+                        ? "border-green-400 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300"
+                        : locationStatus === "error"
+                        ? "border-red-300 bg-red-50 dark:bg-red-950/30 text-red-500"
+                        : "border-input bg-muted/40 text-muted-foreground hover:bg-muted/70"
+                    }`}
+                  >
+                    {locationStatus === "success" ? (
+                      <CheckCircle className="w-4 h-4 flex-shrink-0 text-green-500" />
+                    ) : locationStatus === "loading" ? (
+                      <Navigation className="w-4 h-4 flex-shrink-0 animate-pulse" />
+                    ) : (
+                      <MapPin className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    <span className="flex-1 text-right">
+                      {locationStatus === "loading"
+                        ? "جاري تحديد الموقع..."
+                        : locationStatus === "success"
+                        ? "تم تحديد الموقع ✓"
+                        : "📍 أرسل موقعي من الخريطة"}
+                    </span>
+                  </button>
+                  {locationStatus === "error" && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">{locationError}</p>
+                  )}
+                  {locationStatus === "success" && locationCoords && (
+                    <a
+                      href={`https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary underline mt-1 block font-medium"
+                    >
+                      عرض موقعك على الخريطة
+                    </a>
+                  )}
                 </div>
-              </div>
+              )}
 
               <label className="flex items-center gap-2.5 cursor-pointer select-none mt-1">
                 <input
@@ -422,7 +488,7 @@ export default function Cart() {
             ) : (
               <>
                 <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-6 border border-green-200 dark:border-green-900/50">
-                  سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد العنوان ووقت التوصيل.
+                  سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد وقت التوصيل.
                 </div>
                 <Button
                   size="lg"
