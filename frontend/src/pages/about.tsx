@@ -49,10 +49,19 @@ export default function About() {
               <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6">
                 <MapPin className="w-8 h-8" />
               </div>
-              <h3 className="font-bold text-xl mb-3">العنوان</h3>
-              <p className="text-muted-foreground font-medium leading-relaxed">
+              <h3 className="font-bold text-xl mb-3">موقعنا</h3>
+              <p className="text-muted-foreground font-medium leading-relaxed mb-4">
                 حلب - الفرقان<br />شارع الفتال<br />مقابل أحذية الآغا
               </p>
+              <a
+                href="https://maps.app.goo.gl/baDcJud8bVrP8g3u5"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground font-bold rounded-full text-sm hover:opacity-90 transition-opacity"
+              >
+                <MapPin className="w-4 h-4" />
+                عرض على الخريطة
+              </a>
             </div>
 
             {/* Phone */}
