@@ -16,7 +16,7 @@ import { Loader2, ChevronDown, ChevronUp, Phone, User } from "lucide-react";
 
 const STATUS_MAP = {
   pending: { label: "معلق", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
-  confirmed: { label: "مؤكد", color: "bg-blue-500 hover:bg-blue-600 text-white" },
+  confirmed: { label: "جاري التوصيل", color: "bg-blue-500 hover:bg-blue-600 text-white" },
   completed: { label: "مكتمل", color: "bg-green-500 hover:bg-green-600 text-white" },
   cancelled: { label: "ملغي", color: "bg-red-500 hover:bg-red-600 text-white" },
 };
@@ -54,7 +54,7 @@ export default function AdminOrders() {
         <TabsList className="mb-4">
           <TabsTrigger value="all">الكل</TabsTrigger>
           <TabsTrigger value="pending">معلق</TabsTrigger>
-          <TabsTrigger value="confirmed">مؤكد</TabsTrigger>
+          <TabsTrigger value="confirmed">جاري التوصيل</TabsTrigger>
           <TabsTrigger value="completed">مكتمل</TabsTrigger>
           <TabsTrigger value="cancelled">ملغي</TabsTrigger>
         </TabsList>
@@ -115,12 +115,12 @@ export default function AdminOrders() {
                       onValueChange={v => handleStatusChange(order.id, v)}
                       disabled={updateStatusMutation.isPending}
                     >
-                      <SelectTrigger className="w-[120px] h-8">
+                      <SelectTrigger className="w-[140px] h-8">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pending">معلق</SelectItem>
-                        <SelectItem value="confirmed">مؤكد</SelectItem>
+                        <SelectItem value="confirmed">جاري التوصيل</SelectItem>
                         <SelectItem value="completed">مكتمل</SelectItem>
                         <SelectItem value="cancelled">ملغي</SelectItem>
                       </SelectContent>
