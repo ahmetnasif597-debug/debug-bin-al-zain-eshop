@@ -317,16 +317,6 @@ export default function ProfilePage() {
                   dir="ltr"
                 />
               </div>
-              <div>
-                <label className="text-sm font-bold text-foreground mb-2 block">البريد الإلكتروني</label>
-                <Input
-                  value={customer.email}
-                  disabled
-                  className="h-12 rounded-xl font-medium font-sans bg-muted/30 text-muted-foreground cursor-not-allowed"
-                  dir="ltr"
-                />
-                <p className="text-xs text-muted-foreground mt-1.5">لا يمكن تغيير البريد الإلكتروني</p>
-              </div>
             </div>
 
             {/* Password Change */}
