@@ -5,7 +5,7 @@ import { useCart, FlavorQty } from "@/context/cart-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Plus, Minus, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProductCardProps {
@@ -87,16 +87,19 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       )}
 
-      <Link href={`/products/${product.id}`} className="block relative aspect-square overflow-hidden bg-muted/20">
+      {/* صورة المنتج - خلفية بيضاء موحدة بستايل Getir */}
+      <Link href={`/products/${product.id}`} className="block relative aspect-square overflow-hidden bg-white">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
             alt={product.nameAr}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            loading="lazy"
+            className="w-full h-full object-contain p-2 transition-transform duration-500 hover:scale-105"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-            لا توجد صورة
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-muted/30 text-muted-foreground">
+            <ImageOff className="w-6 h-6 md:w-8 md:h-8 opacity-50" />
+            <span className="text-[10px] md:text-xs">لا توجد صورة</span>
           </div>
         )}
       </Link>
