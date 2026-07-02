@@ -143,27 +143,43 @@ router.post("/admin/customers/:id/reset-password", async (req: any, res: any) =>
 });
 
 // ===== POST /admin/products : إضافة منتج جديد مع معالجة صورة مجانية (إزالة خلفية + كادر أبيض) =====
-// ⚠️ ملاحظة: أسماء الحقول هنا (nameAr, price, description, imageUrl, categoryId) مبنية على
-// الاستخدام اللي شفناه بملف product-card.tsx. تأكد من مطابقتها لأعمدة productsTable
-// الحقيقية بملف الـ schema عندك، وعدّلها إذا كان فيه فرق بالتسمية.
 router.post("/admin/products", upload.single("image"), async (req: any, res: any) => {
   if (!req.session.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const { nameAr, price, description, categoryId } = req.body;
+    const {
+      nameAr,
+      nameEn,
+      price,
+      descriptionAr,
+      descriptionEn,
+      categoryId,
+      unit,
+      soldByWeight,
+      featured,
+    } = req.body;
 
-    if (!nameAr || !price) {
-      return res.status(400).json({ error: "اسم المنتج والسعر مطلوبان" });
+    if (!nameAr || !nameEn || !price || !categoryId) {
+      return res.status(400).json({
+        error: "الاسم بالعربي، الاسم بالإنجليزي، السعر، والقسم كلها مطلوبة",
+      });
     }
 
-    const parsedPrice = parseFloat(price);
-    if (isNaN(parsedPrice)) {
+    // السعر عمود numeric بقاعدة البيانات، لازم يرسل كنص وليس رقم عشري
+    const priceAsNumber = Number(price);
+    if (isNaN(priceAsNumber)) {
       return res.status(400).json({ error: "صيغة السعر غير صحيحة" });
     }
+    const priceAsString = priceAsNumber.toFixed(2);
 
-    let imageUrl: string | null = null;
+    const parsedCategoryId = Number(categoryId);
+    if (isNaN(parsedCategoryId)) {
+      return res.status(400).json({ error: "القسم غير صحيح" });
+    }
+
+    let imageUrl: string | undefined;
 
     if (req.file) {
       // معالجة الصورة مجاناً: إزالة خلفية + قص + كادر أبيض موحد بستايل Getir
@@ -177,10 +193,15 @@ router.post("/admin/products", upload.single("image"), async (req: any, res: any
       .insert(productsTable)
       .values({
         nameAr,
-        price: parsedPrice,
-        description: description ?? "",
+        nameEn,
+        descriptionAr: descriptionAr ?? null,
+        descriptionEn: descriptionEn ?? null,
+        price: priceAsString,
+        unit: unit ?? "كيلو",
+        categoryId: parsedCategoryId,
         imageUrl,
-        categoryId: categoryId ? Number(categoryId) : null,
+        soldByWeight: soldByWeight === "true" || soldByWeight === true,
+        featured: featured === "true" || featured === true,
       })
       .returning();
 
