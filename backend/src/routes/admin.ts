@@ -2,14 +2,25 @@ import { Router } from "express";
 import { db, productsTable, categoriesTable, ordersTable, customersTable } from "../db";
 import { eq, count } from "drizzle-orm";
 import { AdminLoginBody } from "../schemas";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+import { processProductImage } from "../lib/imageProcessor";
 
 const router = Router();
 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH ?? "";
 const ADMIN_PASSWORD_PLAIN = process.env.ADMIN_PASSWORD ?? "binalzain2024";
+
+// ===== إعداد رفع الصور (Multer) ومجلد الحفظ =====
+const upload = multer({ storage: multer.memoryStorage() });
+const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "products");
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 function hashPasswordLegacy(password: string): string {
   return createHash("sha256").update(password + "binalzain-salt").digest("hex");
@@ -127,6 +138,55 @@ router.post("/admin/customers/:id/reset-password", async (req: any, res: any) =>
     return res.json({ ok: true, message: "Success! The password has been updated." });
   } catch (err) {
     req.log.error({ err }, "Failed to reset customer password");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ===== POST /admin/products : إضافة منتج جديد مع معالجة صورة مجانية (إزالة خلفية + كادر أبيض) =====
+// ⚠️ ملاحظة: أسماء الحقول هنا (nameAr, price, description, imageUrl, categoryId) مبنية على
+// الاستخدام اللي شفناه بملف product-card.tsx. تأكد من مطابقتها لأعمدة productsTable
+// الحقيقية بملف الـ schema عندك، وعدّلها إذا كان فيه فرق بالتسمية.
+router.post("/admin/products", upload.single("image"), async (req: any, res: any) => {
+  if (!req.session.isAdmin) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const { nameAr, price, description, categoryId } = req.body;
+
+    if (!nameAr || !price) {
+      return res.status(400).json({ error: "اسم المنتج والسعر مطلوبان" });
+    }
+
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice)) {
+      return res.status(400).json({ error: "صيغة السعر غير صحيحة" });
+    }
+
+    let imageUrl: string | null = null;
+
+    if (req.file) {
+      // معالجة الصورة مجاناً: إزالة خلفية + قص + كادر أبيض موحد بستايل Getir
+      const processedBuffer = await processProductImage(req.file.buffer);
+      const filename = `${randomUUID()}.jpg`;
+      fs.writeFileSync(path.join(UPLOADS_DIR, filename), processedBuffer);
+      imageUrl = `/uploads/products/${filename}`;
+    }
+
+    const [newProduct] = await db
+      .insert(productsTable)
+      .values({
+        nameAr,
+        price: parsedPrice,
+        description: description ?? "",
+        imageUrl,
+        categoryId: categoryId ? Number(categoryId) : null,
+      })
+      .returning();
+
+    return res.status(201).json({ product: newProduct });
+  } catch (err) {
+    req.log.error({ err }, "Failed to create product");
     return res.status(500).json({ error: "Internal server error" });
   }
 });
