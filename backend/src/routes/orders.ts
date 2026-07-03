@@ -53,7 +53,36 @@ router.get("/orders", async (req: any, res: any) => {
 
 router.post("/orders", async (req: any, res: any) => {
   try {
-    const body = CreateOrderBody.parse(req.body);
+    // تحويل صريح للأرقام قبل التحقق - يمنع الـ 500 error إذا وصل نص بدل رقم
+    const rawBody = req.body ?? {};
+    const coercedBody = {
+      ...rawBody,
+      totalPrice: Number(rawBody.totalPrice),
+      items: Array.isArray(rawBody.items)
+        ? rawBody.items.map((item: any) => ({
+            ...item,
+            price: Number(item.price),
+            quantity: Number(item.quantity),
+            selectedWeight:
+              item.selectedWeight != null ? Number(item.selectedWeight) : item.selectedWeight,
+            lineTotal:
+              item.lineTotal != null ? Number(item.lineTotal) : item.lineTotal,
+          }))
+        : rawBody.items,
+    };
+
+    // لو أي رقم طلع NaN بعد التحويل، هذا خطأ من العميل (400) مش خطأ سيرفر (500)
+    const hasInvalidNumber =
+      Number.isNaN(coercedBody.totalPrice) ||
+      (Array.isArray(coercedBody.items) &&
+        coercedBody.items.some(
+          (item: any) => Number.isNaN(item.price) || Number.isNaN(item.quantity)
+        ));
+    if (hasInvalidNumber) {
+      return res.status(400).json({ error: "Invalid numeric value in order data" });
+    }
+
+    const body = CreateOrderBody.parse(coercedBody);
     const [order] = await db
       .insert(ordersTable)
       .values({
@@ -77,7 +106,12 @@ router.post("/orders", async (req: any, res: any) => {
       totalPrice: Number(order.totalPrice),
       createdAt: order.createdAt.toISOString(),
     });
-  } catch (err) {
+  } catch (err: any) {
+    // خطأ تحقق (Zod) = طلب غلط من العميل، مش خطأ سيرفر
+    if (err?.name === "ZodError") {
+      req.log.warn({ err }, "Invalid order payload");
+      return res.status(400).json({ error: "Invalid order data", details: err.issues });
+    }
     req.log.error({ err }, "Failed to create order");
     return res.status(500).json({ error: "Internal server error" });
   }
