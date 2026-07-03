@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { 
   useListOrders, 
   useUpdateOrderStatus,
+  useListProducts,
   getListOrdersQueryKey,
   getGetAdminStatsQueryKey
 } from "@/lib/api-client";
@@ -27,6 +28,13 @@ export default function AdminOrders() {
   
   const { data: orders, isLoading } = useListOrders(
     filter !== "all" ? { status: filter as "pending" | "confirmed" | "completed" | "cancelled" } : undefined
+  );
+
+  // نجيب المنتجات مرة وحدة لنطلع منها صورة كل منتج (order.items ما فيها صورة أصلاً)
+  const { data: products } = useListProducts();
+  const productImageMap = useMemo(
+    () => new Map((products ?? []).map((p: any) => [p.id, p.imageUrl])),
+    [products]
   );
   
   const queryClient = useQueryClient();
@@ -154,23 +162,39 @@ export default function AdminOrders() {
                         <div>
                           <h4 className="font-bold mb-4">تفاصيل الطلب</h4>
                           <div className="space-y-2">
-                            {order.items?.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-card p-3 rounded border border-border">
-                                <div className="flex flex-col">
-                                  <span className="font-bold">{item.nameAr}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {item.quantity} ×{" "}
-                                    {item.selectedWeight
-                                      ? `${item.selectedWeight >= 1000 ? item.selectedWeight / 1000 + " كيلو" : item.selectedWeight + " غ"}`
-                                      : item.price.toLocaleString('ar-SY') + " ل.س"
-                                    }
+                            {order.items?.map((item, idx) => {
+                              const imageUrl = productImageMap.get(item.productId);
+                              return (
+                                <div key={idx} className="flex justify-between items-center bg-card p-3 rounded border border-border">
+                                  <div className="flex items-center gap-3">
+                                    {imageUrl ? (
+                                      <img
+                                        src={imageUrl}
+                                        alt={item.nameAr}
+                                        className="w-12 h-12 rounded-md object-cover border border-border flex-shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                                        —
+                                      </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                      <span className="font-bold">{item.nameAr}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {item.quantity} ×{" "}
+                                        {item.selectedWeight
+                                          ? `${item.selectedWeight >= 1000 ? item.selectedWeight / 1000 + " كيلو" : item.selectedWeight + " غ"}`
+                                          : item.price.toLocaleString('ar-SY') + " ل.س"
+                                        }
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <span className="font-bold">
+                                    {(item.lineTotal ?? 0).toLocaleString('ar-SY')} ل.س
                                   </span>
                                 </div>
-                                <span className="font-bold">
-                                  {(item.lineTotal ?? 0).toLocaleString('ar-SY')} ل.س
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                           <div className="mt-4 pt-3 border-t border-border flex justify-between font-bold text-primary">
                             <span>المجموع</span>
