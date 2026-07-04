@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, ordersTable } from "../db";
-import { eq, desc, gt } from "drizzle-orm";
+import { eq, desc, gt, lt } from "drizzle-orm";
 import {
   CreateOrderBody,
   GetOrderParams,
@@ -144,6 +144,45 @@ router.patch("/orders/:id", async (req: any, res: any) => {
     return res.json({ ...order, totalPrice: Number(order.totalPrice), createdAt: order.createdAt.toISOString() });
   } catch (err) {
     req.log.error({ err }, "Failed to update order status");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/orders/:id", async (req: any, res: any) => {
+  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid order id" });
+
+    const [existing] = await db.select().from(ordersTable).where(eq(ordersTable.id, id));
+    if (!existing) return res.status(404).json({ error: "Order not found" });
+
+    await db.delete(ordersTable).where(eq(ordersTable.id, id));
+    return res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete order");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// حذف جماعي: كل الطلبات الأقدم من تاريخ معيّن
+router.delete("/orders", async (req: any, res: any) => {
+  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const beforeDateStr = req.query.before as string | undefined;
+    if (!beforeDateStr) return res.status(400).json({ error: "Missing 'before' query parameter (ISO date)" });
+
+    const beforeDate = new Date(beforeDateStr);
+    if (isNaN(beforeDate.getTime())) return res.status(400).json({ error: "Invalid 'before' date" });
+
+    const deleted = await db
+      .delete(ordersTable)
+      .where(lt(ordersTable.createdAt, beforeDate))
+      .returning({ id: ordersTable.id });
+
+    return res.json({ deletedCount: deleted.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to bulk delete orders");
     return res.status(500).json({ error: "Internal server error" });
   }
 });
