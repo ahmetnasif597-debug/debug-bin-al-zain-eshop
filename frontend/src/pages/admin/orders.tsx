@@ -11,9 +11,21 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ChevronDown, ChevronUp, Phone, User } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, ChevronDown, ChevronUp, Phone, User, Trash2 } from "lucide-react";
 
 const STATUS_MAP = {
   pending: { label: "معلق", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
@@ -25,6 +37,10 @@ const STATUS_MAP = {
 export default function AdminOrders() {
   const [filter, setFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [orderPendingDelete, setOrderPendingDelete] = useState<number | null>(null);
+  const [bulkDeleteBeforeDate, setBulkDeleteBeforeDate] = useState<string>("");
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { data: orders, isLoading } = useListOrders(
     filter !== "all" ? { status: filter as "pending" | "confirmed" | "completed" | "cancelled" } : undefined
@@ -54,9 +70,94 @@ export default function AdminOrders() {
     updateStatusMutation.mutate({ id: orderId, data: { status: status as "pending" | "confirmed" | "completed" | "cancelled" } });
   };
 
+  const refreshOrders = () => {
+    queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+  };
+
+  const handleDeleteOrder = async (orderId: number) => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "تعذر حذف الطلب",
+          description: err?.error ?? `HTTP ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "تم حذف الطلب" });
+      refreshOrders();
+    } catch (err) {
+      toast({ title: "تعذر الاتصال بالسيرفر", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setOrderPendingDelete(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!bulkDeleteBeforeDate) return;
+    setIsDeleting(true);
+    try {
+      const beforeIso = new Date(bulkDeleteBeforeDate).toISOString();
+      const res = await fetch(`/api/orders?before=${encodeURIComponent(beforeIso)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "تعذر حذف الطلبات",
+          description: err?.error ?? `HTTP ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const data = await res.json();
+      toast({ title: `تم حذف ${data.deletedCount ?? 0} طلب` });
+      refreshOrders();
+      setBulkDeleteBeforeDate("");
+    } catch (err) {
+      toast({ title: "تعذر الاتصال بالسيرفر", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setBulkDeleteConfirmOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-black text-foreground">إدارة الطلبات</h1>
+
+      {/* حذف جماعي حسب التاريخ */}
+      <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
+            حذف كل الطلبات قبل تاريخ
+          </label>
+          <Input
+            type="date"
+            value={bulkDeleteBeforeDate}
+            onChange={(e) => setBulkDeleteBeforeDate(e.target.value)}
+            className="h-10"
+          />
+        </div>
+        <Button
+          variant="destructive"
+          disabled={!bulkDeleteBeforeDate || isDeleting}
+          onClick={() => setBulkDeleteConfirmOpen(true)}
+          className="gap-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          حذف الطلبات القديمة
+        </Button>
+      </div>
 
       <Tabs defaultValue="all" onValueChange={setFilter}>
         <TabsList className="mb-4">
@@ -79,18 +180,19 @@ export default function AdminOrders() {
               <TableHead className="text-right">المجموع</TableHead>
               <TableHead className="text-right">الحالة</TableHead>
               <TableHead className="text-right">تحديث الحالة</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
                 </TableCell>
               </TableRow>
             ) : orders?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   لا توجد طلبات
                 </TableCell>
               </TableRow>
@@ -134,10 +236,19 @@ export default function AdminOrders() {
                       </SelectContent>
                     </Select>
                   </TableCell>
+                  <TableCell onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setOrderPendingDelete(order.id)}
+                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      title="حذف الطلب"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </TableCell>
                 </TableRow>
                 {expandedId === order.id && (
                   <TableRow className="bg-muted/20">
-                    <TableCell colSpan={7} className="p-0">
+                    <TableCell colSpan={8} className="p-0">
                       <div className="p-6 grid md:grid-cols-2 gap-8 border-b border-border">
                         <div>
                           <h4 className="font-bold mb-4 flex items-center gap-2 text-primary">
@@ -210,6 +321,50 @@ export default function AdminOrders() {
           </TableBody>
         </Table>
       </div>
+
+      {/* تأكيد حذف طلب واحد */}
+      <AlertDialog open={orderPendingDelete !== null} onOpenChange={(open) => !open && setOrderPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الطلب #{orderPendingDelete}</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف هذا الطلب؟ هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={() => orderPendingDelete !== null && handleDeleteOrder(orderPendingDelete)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? "جاري الحذف..." : "حذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* تأكيد الحذف الجماعي */}
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الطلبات القديمة</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف كل الطلبات المسجلة قبل تاريخ {bulkDeleteBeforeDate} نهائيًا. هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={handleBulkDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? "جاري الحذف..." : "تأكيد الحذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
