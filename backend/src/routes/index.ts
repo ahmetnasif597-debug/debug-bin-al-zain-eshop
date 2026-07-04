@@ -9,6 +9,7 @@ import profileRouter from "./profile";
 import notificationsRouter from "./notifications";
 import storageRouter from "./storage";
 import settingsRouter from "./settings";
+import reportsRouter from "./reports";
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use(profileRouter);
 router.use(notificationsRouter);
 router.use(storageRouter);
 router.use(settingsRouter);
+router.use(reportsRouter);
 
 export default router;
