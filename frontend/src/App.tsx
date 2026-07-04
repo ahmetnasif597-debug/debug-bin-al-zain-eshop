@@ -24,6 +24,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminProducts from "@/pages/admin/products";
 import AdminCategories from "@/pages/admin/categories";
 import AdminOrders from "@/pages/admin/orders";
+import AdminReports from "@/pages/admin/reports";
 import AdminCustomers from "@/pages/admin/customers";
 import AdminNotifications from "@/pages/admin/notifications";
 import AdminSettings from "@/pages/admin/settings";
@@ -85,6 +86,13 @@ function Router() {
         <AdminGuard>
           <AdminLayout>
             <AdminOrders />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/reports">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminReports />
           </AdminLayout>
         </AdminGuard>
       </Route>
