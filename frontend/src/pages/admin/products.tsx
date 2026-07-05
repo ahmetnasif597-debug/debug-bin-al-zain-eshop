@@ -110,7 +110,7 @@ export default function AdminProducts() {
     categoryId: "",
     imageUrl: "",
     inStock: true,
-    isFeatured: false,
+    featured: false,
     soldByWeight: false,
     availableWeights: [] as number[],
     allowCustomWeight: false,
@@ -130,7 +130,7 @@ export default function AdminProducts() {
         categoryId: product.categoryId.toString(),
         imageUrl: product.imageUrl || "",
         inStock: product.inStock,
-        isFeatured: product.isFeatured || false,
+        featured: product.featured || false,
         soldByWeight: product.soldByWeight,
         availableWeights: product.availableWeights || [],
         allowCustomWeight: product.allowCustomWeight || false,
@@ -148,7 +148,7 @@ export default function AdminProducts() {
         categoryId: categories?.[0]?.id.toString() || "",
         imageUrl: "",
         inStock: true,
-        isFeatured: false,
+        featured: false,
         soldByWeight: false,
         availableWeights: [],
         allowCustomWeight: false,
@@ -384,7 +384,7 @@ export default function AdminProducts() {
               </div>
               <div className="flex items-center justify-between">
                 <Label className="font-bold">منتج مميز (يظهر في الرئيسية)</Label>
-                <Switch checked={formData.isFeatured} onCheckedChange={c => setFormData({...formData, isFeatured: c})} />
+                <Switch checked={formData.featured} onCheckedChange={c => setFormData({...formData, featured: c})} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
