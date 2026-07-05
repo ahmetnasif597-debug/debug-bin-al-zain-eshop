@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { 
   useListProducts, 
   useListCategories, 
@@ -12,7 +12,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -188,6 +187,29 @@ export default function AdminProducts() {
 
   const filteredProducts = products?.filter(p => p.nameAr.includes(search)) || [];
 
+  // تجميع المنتجات حسب الفئة - كل فئة بمجموعتها الخاصة بدل قائمة واحدة مخلوطة
+  const groupedByCategory = useMemo(() => {
+    const groups = new Map<number, { categoryName: string; items: typeof filteredProducts }>();
+    for (const p of filteredProducts) {
+      if (!groups.has(p.categoryId)) {
+        groups.set(p.categoryId, { categoryName: p.categoryNameAr || "بدون فئة", items: [] });
+      }
+      groups.get(p.categoryId)!.items.push(p);
+    }
+    // نحافظ على نفس ترتيب الفئات كما هو بصفحة "الفئات"
+    if (categories) {
+      const ordered = new Map<number, { categoryName: string; items: typeof filteredProducts }>();
+      for (const cat of categories) {
+        if (groups.has(cat.id)) ordered.set(cat.id, groups.get(cat.id)!);
+      }
+      for (const [id, group] of groups) {
+        if (!ordered.has(id)) ordered.set(id, group);
+      }
+      return ordered;
+    }
+    return groups;
+  }, [filteredProducts, categories]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -207,59 +229,65 @@ export default function AdminProducts() {
         />
       </div>
 
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-right">الصورة</TableHead>
-              <TableHead className="text-right">الاسم</TableHead>
-              <TableHead className="text-right">الفئة</TableHead>
-              <TableHead className="text-right">السعر</TableHead>
-              <TableHead className="text-right">المخزون</TableHead>
-              <TableHead className="text-right">مميز</TableHead>
-              <TableHead className="text-right">إجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></TableCell>
-              </TableRow>
-            ) : filteredProducts.map(p => (
-              <TableRow key={p.id}>
-                <TableCell>
-                  {p.imageUrl ? <img src={p.imageUrl} className="w-12 h-12 rounded object-cover" /> : <div className="w-12 h-12 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">صورة</div>}
-                </TableCell>
-                <TableCell className="font-bold">{p.nameAr}</TableCell>
-                <TableCell>{p.categoryNameAr}</TableCell>
-                <TableCell>{p.price.toLocaleString('ar-SY')} ل.س / {p.unit}</TableCell>
-                <TableCell>
-                  <Badge variant={p.inStock ? "default" : "destructive"}>
-                    {p.inStock ? "متوفر" : "نفد"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {p.featured && <Badge variant="secondary">مميز</Badge>}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpen(p)}>
-                      <Edit2 className="w-4 h-4 text-blue-500" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => {
-                      if (confirm("هل أنت متأكد من الحذف؟")) {
-                        deleteMutation.mutate({ id: p.id });
-                      }
-                    }}>
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      ) : groupedByCategory.size === 0 ? (
+        <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">
+          لا توجد منتجات مطابقة
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {Array.from(groupedByCategory.entries()).map(([categoryId, group]) => (
+            <div key={categoryId} className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 bg-muted/40 border-b border-border flex items-center justify-between">
+                <h2 className="font-black text-base text-primary">{group.categoryName}</h2>
+                <span className="text-xs text-muted-foreground font-medium">{group.items.length} منتج</span>
+              </div>
+              <div className="divide-y divide-border">
+                {group.items.map(p => (
+                  <div key={p.id} className="flex items-center gap-3 p-3">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center text-[10px] text-muted-foreground flex-shrink-0">صورة</div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm truncate">{p.nameAr}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {p.price.toLocaleString('ar-SY')} ل.س / {p.unit}
+                      </div>
+                      <div className="flex gap-1.5 mt-1.5">
+                        {!p.inStock && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">نفد</Badge>
+                        )}
+                        {p.featured && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">مميز</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpen(p)}>
+                        <Edit2 className="w-4 h-4 text-blue-500" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                        if (confirm("هل أنت متأكد من الحذف؟")) {
+                          deleteMutation.mutate({ id: p.id });
+                        }
+                      }}>
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
