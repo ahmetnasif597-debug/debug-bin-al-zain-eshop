@@ -10,6 +10,7 @@ import notificationsRouter from "./notifications";
 import storageRouter from "./storage";
 import settingsRouter from "./settings";
 import reportsRouter from "./reports";
+import bulkImportRouter from "./bulk-import";
 
 const router = Router();
 
@@ -17,6 +18,7 @@ router.use(healthRouter);
 router.use(categoriesRouter);
 router.use(productsRouter);
 router.use(adminRouter);
+router.use(bulkImportRouter);
 router.use(ordersRouter);
 router.use(authRouter);
 router.use(profileRouter);
