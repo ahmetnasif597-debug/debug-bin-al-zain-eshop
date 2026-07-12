@@ -19,7 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon, FileSpreadsheet } from "lucide-react";
+import { BulkImportModal } from "@/components/admin/BulkImportModal";
 
 async function uploadImageToStorage(file: File): Promise<string> {
   const formData = new FormData();
@@ -77,6 +78,7 @@ export default function AdminProducts() {
   });
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadPreview, setUploadPreview] = useState<string>("");
@@ -214,9 +216,14 @@ export default function AdminProducts() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-black text-foreground">إدارة المنتجات</h1>
-        <Button onClick={() => handleOpen()} className="gap-2 font-bold">
-          <Plus className="w-5 h-5" /> إضافة منتج
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsBulkImportOpen(true)} variant="outline" className="gap-2 font-bold">
+            <FileSpreadsheet className="w-5 h-5" /> استيراد من ملف Excel
+          </Button>
+          <Button onClick={() => handleOpen()} className="gap-2 font-bold">
+            <Plus className="w-5 h-5" /> إضافة منتج
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 bg-card p-2 rounded-xl border border-border">
@@ -458,6 +465,15 @@ export default function AdminProducts() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <BulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        }}
+      />
     </div>
   );
 }
