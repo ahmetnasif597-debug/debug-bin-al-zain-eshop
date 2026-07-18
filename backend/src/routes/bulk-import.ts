@@ -2,13 +2,13 @@ import { Router } from "express";
 import { db, productsTable, categoriesTable } from "../db";
 import { eq } from "drizzle-orm";
 import multer from "multer";
-import { parseFile } from "../utils/excel-parser";
+import { parseFile } from "../utils/excel-parser.js";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 function requireAdmin(req: any, res: any): boolean {
-  if (!req.session.isAdmin) {
+  if (!req.user?.isAdmin) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
@@ -94,7 +94,7 @@ router.post(
             price: row.price!,
             unit: row.unit!,
             categoryId: categoryId!,
-            imageUrl: null, // No image for bulk import
+            imageUrl: null,
             inStock: true,
             featured: false,
             soldByWeight: false,
@@ -132,13 +132,11 @@ router.post(
 
       // Compile error messages
       const errorMessages: string[] = [];
-      
-      // Add parsing errors (from file parsing)
+
       if (parseResult.errors.length > 0) {
         errorMessages.push(...parseResult.errors);
       }
 
-      // Add validation errors with row details
       validationErrors.forEach((err) => {
         errorMessages.push(
           `المنتج "${err.nameAr}": ${err.errors.join(", ")}`
@@ -150,11 +148,7 @@ router.post(
         parseResult.rows.length - validRows.length + validationErrors.length;
 
       req.log.info(
-        {
-          successCount,
-          failureCount,
-          errorCount: errorMessages.length,
-        },
+        { successCount, failureCount, errorCount: errorMessages.length },
         "Bulk import completed"
       );
 
@@ -168,7 +162,7 @@ router.post(
             : `فشلت عملية الاستيراد - جميع المنتجات تحتوي على أخطاء`,
         successCount,
         failureCount,
-        errors: errorMessages.slice(0, 20), // Return first 20 errors to avoid payload too large
+        errors: errorMessages.slice(0, 20),
         totalErrors: errorMessages.length,
         addedProductIds,
       } as BulkImportResult & {
@@ -181,8 +175,7 @@ router.post(
       req.log.error({ err }, "Failed to process bulk import");
       return res.status(500).json({
         error: "خطأ في معالجة الملف",
-        details:
-          err instanceof Error ? err.message : "خطأ غير معروف",
+        details: err instanceof Error ? err.message : "خطأ غير معروف",
       });
     }
   }

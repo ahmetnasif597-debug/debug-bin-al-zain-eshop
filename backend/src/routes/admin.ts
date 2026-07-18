@@ -5,11 +5,13 @@ import { AdminLoginBody } from "../schemas";
 import { createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
+import { signToken } from "../lib/jwt.js";
 
 const router = Router();
 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH ?? "";
 const ADMIN_PASSWORD_PLAIN = process.env.ADMIN_PASSWORD ?? "binalzain2024";
+const isProduction = process.env.NODE_ENV === "production";
 
 function hashPasswordLegacy(password: string): string {
   return createHash("sha256").update(password + "binalzain-salt").digest("hex");
@@ -37,7 +39,13 @@ router.post("/admin/login", loginLimiter, async (req: any, res: any) => {
     if (!valid) {
       return res.status(401).json({ error: "كلمة المرور غير صحيحة" });
     }
-    req.session.isAdmin = true;
+    const token = signToken({ isAdmin: true });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
     return res.json({ authenticated: true });
   } catch (err) {
     req.log.error({ err }, "Admin login failed");
@@ -46,20 +54,19 @@ router.post("/admin/login", loginLimiter, async (req: any, res: any) => {
 });
 
 router.post("/admin/logout", (req: any, res: any) => {
-  req.session.destroy(() => {
-    res.json({ authenticated: false });
-  });
+  res.clearCookie("token");
+  return res.json({ authenticated: false });
 });
 
 router.get("/admin/me", (req: any, res: any) => {
-  if (req.session.isAdmin) {
+  if (req.user?.isAdmin) {
     return res.json({ authenticated: true });
   }
   return res.status(401).json({ authenticated: false });
 });
 
 router.get("/admin/stats", async (req: any, res: any) => {
-  if (!req.session.isAdmin) {
+  if (!req.user?.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   try {
@@ -89,7 +96,7 @@ router.get("/admin/stats", async (req: any, res: any) => {
 });
 
 router.get("/admin/customers", async (req: any, res: any) => {
-  if (!req.session.isAdmin) {
+  if (!req.user?.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   try {
@@ -111,7 +118,7 @@ router.get("/admin/customers", async (req: any, res: any) => {
 });
 
 router.post("/admin/customers/:id/reset-password", async (req: any, res: any) => {
-  if (!req.session.isAdmin) {
+  if (!req.user?.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   const id = Number(req.params.id);

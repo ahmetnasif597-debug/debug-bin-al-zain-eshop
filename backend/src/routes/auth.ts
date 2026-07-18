@@ -2,8 +2,10 @@ import { Router } from "express";
 import { db, customersTable } from "../db";
 import { eq } from "drizzle-orm";
 import { createHash } from "crypto";
+import { signToken } from "../lib/jwt.js";
 
 const router = Router();
+const isProduction = process.env.NODE_ENV === "production";
 
 function hashPassword(password: string): string {
   return createHash("sha256").update(password + "binalzain-salt").digest("hex");
@@ -11,6 +13,16 @@ function hashPassword(password: string): string {
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\s+/g, "").trim();
+}
+
+function setAuthCookie(res: any, customerId: number, customerName: string): void {
+  const token = signToken({ customerId, customerName });
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 }
 
 router.post("/auth/register", async (req: any, res: any) => {
@@ -29,8 +41,7 @@ router.post("/auth/register", async (req: any, res: any) => {
     }
     const passwordHash = hashPassword(password);
     const [customer] = await db.insert(customersTable).values({ fullName, phone: normalizedPhone, passwordHash }).returning();
-    req.session.customerId = customer.id;
-    req.session.customerName = customer.fullName;
+    setAuthCookie(res, customer.id, customer.fullName);
     return res.status(201).json({
       id: customer.id,
       fullName: customer.fullName,
@@ -54,8 +65,7 @@ router.post("/auth/login", async (req: any, res: any) => {
     if (!customer || customer.passwordHash !== hashPassword(password)) {
       return res.status(401).json({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" });
     }
-    req.session.customerId = customer.id;
-    req.session.customerName = customer.fullName;
+    setAuthCookie(res, customer.id, customer.fullName);
     return res.json({
       id: customer.id,
       fullName: customer.fullName,
@@ -69,19 +79,18 @@ router.post("/auth/login", async (req: any, res: any) => {
 });
 
 router.post("/auth/logout", (req: any, res: any) => {
-  req.session.customerId = undefined;
-  req.session.customerName = undefined;
+  res.clearCookie("token");
   return res.json({ authenticated: false });
 });
 
 router.get("/auth/me", async (req: any, res: any) => {
-  if (!req.session.customerId) {
+  if (!req.user?.customerId) {
     return res.status(401).json({ error: "غير مسجل الدخول" });
   }
   try {
-    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, req.session.customerId)).limit(1);
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, req.user.customerId)).limit(1);
     if (!customer) {
-      req.session.customerId = undefined;
+      res.clearCookie("token");
       return res.status(401).json({ error: "غير مسجل الدخول" });
     }
     return res.json({
@@ -97,12 +106,12 @@ router.get("/auth/me", async (req: any, res: any) => {
 });
 
 router.patch("/auth/profile", async (req: any, res: any) => {
-  if (!req.session.customerId) {
+  if (!req.user?.customerId) {
     return res.status(401).json({ error: "غير مسجل الدخول" });
   }
   try {
     const { fullName, phone, currentPassword, newPassword } = req.body;
-    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, req.session.customerId)).limit(1);
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, req.user.customerId)).limit(1);
     if (!customer) {
       return res.status(401).json({ error: "غير مسجل الدخول" });
     }
@@ -135,7 +144,7 @@ router.patch("/auth/profile", async (req: any, res: any) => {
 
     const [updated] = await db.update(customersTable).set(updates).where(eq(customersTable.id, customer.id)).returning();
     if (updates.fullName) {
-      req.session.customerName = updated.fullName;
+      setAuthCookie(res, updated.id, updated.fullName);
     }
     return res.json({
       id: updated.id,
