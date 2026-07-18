@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { db, notificationsTable, notificationReadsTable, customersTable } from "../db";
+import { pushSubscriptionsTable } from "../db/schema/pushSubscriptions.js";
 import { eq, and, or, isNull, inArray, desc } from "drizzle-orm";
+import { sendPushToSubscriptions } from "../lib/webpush.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -163,15 +166,33 @@ router.post("/admin/notifications", async (req: any, res: any) => {
       return res.status(400).json({ error: "نوع الإشعار غير صحيح" });
     }
 
+    const targetCustomerId = customerId ? Number(customerId) : null;
+
     const [notification] = await db
       .insert(notificationsTable)
-      .values({
-        type,
-        title,
-        body,
-        customerId: customerId ? Number(customerId) : null,
-      })
+      .values({ type, title, body, customerId: targetCustomerId })
       .returning();
+
+    // إرسال Push — fire-and-forget
+    // broadcast (customerId = null): نُرسل لكل اشتراكات الزبائن
+    // محدد (customerId رقم): نُرسل لاشتراكات هذا الزبون فقط
+    const pushUrl = targetCustomerId ? "/profile" : "/";
+    const pushTag = `admin-notif-${notification.id}`;
+
+    if (targetCustomerId) {
+      db.select()
+        .from(pushSubscriptionsTable)
+        .where(eq(pushSubscriptionsTable.customerId, targetCustomerId))
+        .then((subs) => sendPushToSubscriptions(subs, { title, body, url: pushUrl, tag: pushTag }))
+        .catch((err: unknown) => logger.warn({ err }, "فشل Push للزبون المحدد"));
+    } else {
+      // broadcast: فقط الزبائن (customerId IS NOT NULL) — الأدمن لا يحتاج إشعار لنفسه
+      db.select()
+        .from(pushSubscriptionsTable)
+        .where(isNull(pushSubscriptionsTable.customerId) === false as any)
+        .then((subs) => sendPushToSubscriptions(subs, { title, body, url: pushUrl, tag: pushTag }))
+        .catch((err: unknown) => logger.warn({ err }, "فشل Push الإذاعي للزبائن"));
+    }
 
     return res.status(201).json({
       ...notification,
