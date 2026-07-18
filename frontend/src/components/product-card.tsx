@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { Product } from "@/lib/api-client";
 import { useCart, FlavorQty } from "@/context/cart-context";
@@ -13,7 +13,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCart();
+  const { items, addItem, updateQuantity, removeItem } = useCart();
   const { toast } = useToast();
 
   const flavors: string[] = product.availableFlavors ?? [];
@@ -35,6 +35,18 @@ export function ProductCard({ product }: ProductCardProps) {
   const priceToDisplay = product.soldByWeight
     ? (actualWeight / 1000) * product.price
     : product.price;
+
+  // للمنتجات بدون نكهات: نلاقي الكمية الحالية بالسلة لنفس المنتج (ونفس الوزن المختار لو المنتج يباع بالوزن)
+  const relevantWeightForMatch = product.soldByWeight ? actualWeight : undefined;
+  const cartItemQty = useMemo(() => {
+    if (hasFlavors) return 0;
+    const match = items.find(
+      (i) =>
+        i.product.id === product.id &&
+        (product.soldByWeight ? i.selectedWeight === relevantWeightForMatch : true)
+    );
+    return match?.quantity ?? 0;
+  }, [items, product.id, product.soldByWeight, relevantWeightForMatch, hasFlavors]);
 
   const adjustFlavor = (flavor: string, delta: number) => {
     setFlavorQtys(prev => {
@@ -69,14 +81,33 @@ export function ProductCard({ product }: ProductCardProps) {
         .filter(f => (flavorQtys[f] ?? 0) > 0)
         .map(f => ({ flavor: f, quantity: flavorQtys[f] }));
       addItem(product, totalFlavorQty, weightToAdd, breakdown);
+      toast({
+        title: "تمت الإضافة للسلة",
+        description: `تمت إضافة ${product.nameAr} إلى سلة المشتريات`,
+      });
     } else {
       addItem(product, 1, weightToAdd);
+      toast({
+        title: "تمت الإضافة للسلة",
+        description: `تمت إضافة ${product.nameAr} إلى سلة المشتريات`,
+      });
     }
+  };
 
-    toast({
-      title: "تمت الإضافة للسلة",
-      description: `تمت إضافة ${product.nameAr} إلى سلة المشتريات`,
-    });
+  const handleIncrement = () => {
+    if (cartItemQty === 0) {
+      handleAddToCart();
+      return;
+    }
+    updateQuantity(product.id, cartItemQty + 1, relevantWeightForMatch);
+  };
+
+  const handleDecrement = () => {
+    if (cartItemQty <= 1) {
+      removeItem(product.id, relevantWeightForMatch);
+      return;
+    }
+    updateQuantity(product.id, cartItemQty - 1, relevantWeightForMatch);
   };
 
   return (
@@ -87,14 +118,14 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       )}
 
-      {/* صورة المنتج - خلفية بيضاء موحدة بستايل Getir */}
-      <Link href={`/products/${product.id}`} className="block relative aspect-square overflow-hidden bg-white">
+      {/* صورة المنتج */}
+      <Link href={`/products/${product.id}`} className="block relative aspect-square overflow-hidden">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
             alt={product.nameAr}
             loading="lazy"
-            className="w-full h-full object-contain p-2 transition-transform duration-500 hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-muted/30 text-muted-foreground">
@@ -202,14 +233,44 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
 
-        <Button
-          className="w-full mt-auto font-bold gap-1 h-8 md:h-10 text-xs md:text-sm"
-          onClick={handleAddToCart}
-          disabled={!product.inStock}
-        >
-          <ShoppingCart className="w-3.5 h-3.5 md:w-4 md:h-4" />
-          {hasFlavors && totalFlavorQty > 0 ? `أضف ${totalFlavorQty} للسلة` : <><span className="hidden xs:inline">أضف</span> للسلة</>}
-        </Button>
+        {hasFlavors ? (
+          <Button
+            className="w-full mt-auto font-bold gap-1 h-8 md:h-10 text-xs md:text-sm"
+            onClick={handleAddToCart}
+            disabled={!product.inStock}
+          >
+            <ShoppingCart className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            {totalFlavorQty > 0 ? `أضف ${totalFlavorQty} للسلة` : <><span className="hidden xs:inline">أضف</span> للسلة</>}
+          </Button>
+        ) : cartItemQty > 0 ? (
+          <div className="w-full mt-auto flex items-center justify-between bg-primary rounded-lg h-8 md:h-10 overflow-hidden">
+            <button
+              onClick={handleIncrement}
+              className="flex-1 h-full flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors"
+              disabled={!product.inStock}
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <span className="px-3 font-bold text-primary-foreground text-sm min-w-[2ch] text-center">
+              {cartItemQty}
+            </span>
+            <button
+              onClick={handleDecrement}
+              className="flex-1 h-full flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <Button
+            className="w-full mt-auto font-bold gap-1 h-8 md:h-10 text-xs md:text-sm"
+            onClick={handleAddToCart}
+            disabled={!product.inStock}
+          >
+            <ShoppingCart className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden xs:inline">أضف</span> للسلة
+          </Button>
+        )}
       </div>
     </div>
   );
