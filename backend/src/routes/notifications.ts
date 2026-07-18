@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, notificationsTable, notificationReadsTable, customersTable } from "../db";
 import { pushSubscriptionsTable } from "../db/schema/pushSubscriptions.js";
-import { eq, and, or, isNull, inArray, desc } from "drizzle-orm";
+import { eq, and, or, isNull, isNotNull, inArray, desc } from "drizzle-orm";
 import { sendPushToSubscriptions } from "../lib/webpush.js";
 import { logger } from "../lib/logger.js";
 
@@ -189,7 +189,7 @@ router.post("/admin/notifications", async (req: any, res: any) => {
       // broadcast: فقط الزبائن (customerId IS NOT NULL) — الأدمن لا يحتاج إشعار لنفسه
       db.select()
         .from(pushSubscriptionsTable)
-        .where(isNull(pushSubscriptionsTable.customerId) === false as any)
+        .where(isNotNull(pushSubscriptionsTable.customerId))
         .then((subs) => sendPushToSubscriptions(subs, { title, body, url: pushUrl, tag: pushTag }))
         .catch((err: unknown) => logger.warn({ err }, "فشل Push الإذاعي للزبائن"));
     }

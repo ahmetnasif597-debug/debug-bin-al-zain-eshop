@@ -76,4 +76,4 @@ channel = "stable-25_05"
 [userenv.shared]
 ADMIN_PASSWORD_HASH = "$2b$12$xLlSh3uV8F473nP3aDCw9u4mmakr3C.WRjItitqMtKZ0gjitrzsJ."
 VAPID_EMAIL = "mailto:admin@binalzain.com"
-VAPID_PUBLIC_KEY = "BOFquh_fbqw8rPdZ8tMX3KzwpHXv8su99zZ4K1ZN9WmHdt-HuqQRbTfLkkJubhBFcB89Du3vZmjqJjvRaQ8id4w"
+VAPID_PUBLIC_KEY = "BK1parCpFnjYcL7GmAqel628edakMozDY46lWpHtVWHYekCif_FG9s8mDHo5AYj2U0YUdqvgI_TnqmVFNrc__NA"
