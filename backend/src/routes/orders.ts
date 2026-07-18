@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 router.get("/admin/orders/new-since", async (req: any, res: any) => {
-  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.user?.isAdmin) return res.status(401).json({ error: "Unauthorized" });
   try {
     const since = req.query.since ? new Date(req.query.since as string) : new Date(0);
     if (isNaN(since.getTime())) return res.status(400).json({ error: "Invalid since parameter" });
@@ -86,7 +86,7 @@ router.post("/orders", async (req: any, res: any) => {
     const [order] = await db
       .insert(ordersTable)
       .values({
-        customerId: req.session.customerId ?? null,
+        customerId: req.user?.customerId ?? null,
         customerName: body.customerName ?? null,
         customerPhone: body.customerPhone ?? null,
         items: body.items.map((item) => ({
@@ -149,7 +149,7 @@ router.patch("/orders/:id", async (req: any, res: any) => {
 });
 
 router.delete("/orders/:id", async (req: any, res: any) => {
-  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.user?.isAdmin) return res.status(401).json({ error: "Unauthorized" });
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid order id" });
@@ -167,7 +167,7 @@ router.delete("/orders/:id", async (req: any, res: any) => {
 
 // حذف جماعي: كل الطلبات الأقدم من تاريخ معيّن
 router.delete("/orders", async (req: any, res: any) => {
-  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.user?.isAdmin) return res.status(401).json({ error: "Unauthorized" });
   try {
     const beforeDateStr = req.query.before as string | undefined;
     if (!beforeDateStr) return res.status(400).json({ error: "Missing 'before' query parameter (ISO date)" });

@@ -96,7 +96,7 @@ router.post("/cron/daily-rollup", async (req: any, res: any) => {
 
 // تشغيل يدوي فوري من لوحة الإدارة (تحديث ملخص اليوم بدون انتظار منتصف الليل)
 router.post("/admin/reports/rollup-today", async (req: any, res: any) => {
-  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.user?.isAdmin) return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await computeAndSaveSummaryForDate(dateKey(new Date()));
     return res.json({ ok: true, ...result });
@@ -107,7 +107,7 @@ router.post("/admin/reports/rollup-today", async (req: any, res: any) => {
 });
 
 router.get("/admin/reports/daily", async (req: any, res: any) => {
-  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.user?.isAdmin) return res.status(401).json({ error: "Unauthorized" });
   try {
     await ensureTableExists();
     const rows = await db
@@ -125,7 +125,7 @@ router.get("/admin/reports/daily", async (req: any, res: any) => {
 });
 
 router.get("/admin/reports/monthly", async (req: any, res: any) => {
-  if (!req.session.isAdmin) return res.status(401).json({ error: "Unauthorized" });
+  if (!req.user?.isAdmin) return res.status(401).json({ error: "Unauthorized" });
   try {
     const month = req.query.month as string | undefined; // "YYYY-MM"
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {

@@ -11,7 +11,7 @@ import {
 const router = Router();
 
 function requireAdmin(req: any, res: any): boolean {
-  if (!req.session.isAdmin) {
+  if (!req.user?.isAdmin) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }

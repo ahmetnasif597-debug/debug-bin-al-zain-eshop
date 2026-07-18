@@ -5,14 +5,14 @@ import { eq, desc } from "drizzle-orm";
 const router = Router();
 
 router.get("/profile/orders", async (req: any, res: any) => {
-  if (!req.session.customerId) {
+  if (!req.user?.customerId) {
     return res.status(401).json({ error: "غير مسجل الدخول" });
   }
   try {
     const orders = await db
       .select()
       .from(ordersTable)
-      .where(eq(ordersTable.customerId, req.session.customerId))
+      .where(eq(ordersTable.customerId, req.user.customerId))
       .orderBy(desc(ordersTable.createdAt));
     return res.json(
       orders.map((o) => ({

@@ -18,7 +18,7 @@ router.get("/settings/store-status", async (req: any, res: any) => {
 });
 
 router.put("/settings/store-status", async (req: any, res: any) => {
-  if (!req.session.isAdmin) {
+  if (!req.user?.isAdmin) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   const { status } = req.body as { status: StoreStatus };

@@ -5,7 +5,7 @@ import { eq, and, or, isNull, inArray, desc } from "drizzle-orm";
 const router = Router();
 
 function requireCustomer(req: any, res: any): boolean {
-  if (!req.session.customerId) {
+  if (!req.user?.customerId) {
     res.status(401).json({ error: "غير مسجل الدخول" });
     return false;
   }
@@ -13,7 +13,7 @@ function requireCustomer(req: any, res: any): boolean {
 }
 
 function requireAdmin(req: any, res: any): boolean {
-  if (!req.session.isAdmin) {
+  if (!req.user?.isAdmin) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
@@ -22,7 +22,7 @@ function requireAdmin(req: any, res: any): boolean {
 
 router.get("/notifications", async (req: any, res: any) => {
   if (!requireCustomer(req, res)) return;
-  const customerId = req.session.customerId!;
+  const customerId = req.user!.customerId!;
   try {
     const notifications = await db
       .select()
@@ -62,7 +62,7 @@ router.get("/notifications", async (req: any, res: any) => {
 
 router.post("/notifications/read-all", async (req: any, res: any) => {
   if (!requireCustomer(req, res)) return;
-  const customerId = req.session.customerId!;
+  const customerId = req.user!.customerId!;
   try {
     const notifications = await db
       .select({ id: notificationsTable.id })
@@ -99,7 +99,7 @@ router.post("/notifications/read-all", async (req: any, res: any) => {
 
 router.post("/notifications/read/:id", async (req: any, res: any) => {
   if (!requireCustomer(req, res)) return;
-  const customerId = req.session.customerId!;
+  const customerId = req.user!.customerId!;
   const notificationId = Number(req.params.id);
   if (isNaN(notificationId)) return res.status(400).json({ error: "Invalid id" });
   try {
