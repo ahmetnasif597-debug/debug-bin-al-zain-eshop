@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.binalzain.app",
+    "sha256_cert_fingerprints": ["92:FE:76:E4:28:1A:BF:74:37:50:B9:0E:B8:99:49:F2:07:AA:8B:E2:C7:71:93:D5:A0:A7:A9:1F:31:F1:56:70"]
+  }
+}]
