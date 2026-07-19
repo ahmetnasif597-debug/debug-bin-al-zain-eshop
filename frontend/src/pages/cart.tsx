@@ -43,6 +43,7 @@ export default function Cart() {
   const [phone, setPhone] = useState(saved.phone);
   const [remember, setRemember] = useState(saved.remember);
   const [delivery, setDelivery] = useState<"home" | "pickup">(storeStatus === "pickup_only" ? "pickup" : "home");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Location state
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -85,23 +86,26 @@ export default function Cart() {
   const [validationError, setValidationError] = useState<string>("");
   const errorRef = useRef<HTMLDivElement>(null);
 
+  const showError = (msg: string) => {
+    setValidationError(msg);
+    setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+  };
+
   const handleWhatsAppCheckout = async () => {
     if (!name.trim()) {
-      setValidationError("الرجاء إدخال الاسم الكامل");
-      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      showError("الرجاء إدخال الاسم الكامل");
       return;
     }
     if (!phone.trim()) {
-      setValidationError("الرجاء إدخال رقم الهاتف");
-      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      showError("الرجاء إدخال رقم الهاتف");
       return;
     }
     if (delivery === "home" && locationStatus !== "success") {
-      setValidationError("الرجاء إرسال موقعك من الخريطة");
-      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      showError("الرجاء إرسال موقعك من الخريطة");
       return;
     }
     setValidationError("");
+    setIsSubmitting(true);
 
     const phoneNumber = "963962823756";
 
@@ -109,9 +113,9 @@ export default function Cart() {
       ? `https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`
       : "—";
 
-    // حفظ الطلب في قاعدة البيانات
+    // حفظ الطلب في قاعدة البيانات - لازم نتحقق من النتيجة فعليًا قبل ما نكمل
     try {
-      await fetch("/api/orders", {
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -136,11 +140,31 @@ export default function Cart() {
           }),
         }),
       });
+
+      if (!res.ok) {
+        // السيرفر رفض الطلب - نوقف هون ونعلم الزبون، مش نفتح واتساب وكأنه نجح
+        let errorDetail = "";
+        try {
+          const errJson = await res.json();
+          errorDetail = errJson?.error ?? `HTTP ${res.status}`;
+        } catch {
+          errorDetail = `HTTP ${res.status}`;
+        }
+        console.error("Order save failed:", errorDetail);
+        setIsSubmitting(false);
+        showError(`تعذر حفظ الطلب بالنظام (${errorDetail}). حاول مرة أخرى أو تواصل معنا مباشرة.`);
+        return;
+      }
     } catch (err) {
-      console.error("Failed to save order:", err);
+      console.error("Failed to save order (network error):", err);
+      setIsSubmitting(false);
+      showError("تعذر الاتصال بالسيرفر لحفظ الطلب. تحقق من الإنترنت وحاول مرة أخرى.");
+      return;
     }
 
-    // فتح واتساب
+    setIsSubmitting(false);
+
+    // فتح واتساب - فقط بعد التأكد إن الطلب انحفظ فعليًا
     let orderItems = "";
     items.forEach((item) => {
       const weightText = item.selectedWeight
@@ -171,6 +195,9 @@ export default function Cart() {
     message += orderItems;
     message += `\n📦 *طريقة الاستلام:* ${deliveryMethod}\n`;
     message += `💰 *المجموع النهائي:* ${totalPrice.toLocaleString("ar-SY")} ل.س`;
+
+    // نفرّغ السلة فورًا بعد نجاح حفظ الطلب - قبل فتح واتساب
+    clearCart();
 
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
@@ -518,11 +545,11 @@ export default function Cart() {
                 </div>
                 <Button
                   size="lg"
-                  disabled={storeStatus === "closed"}
+                  disabled={storeStatus === "closed" || isSubmitting}
                   className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleWhatsAppCheckout}
                 >
-                  اطلب عبر واتساب
+                  {isSubmitting ? "جاري إرسال الطلب..." : "اطلب عبر واتساب"}
                 </Button>
               </>
             )}
