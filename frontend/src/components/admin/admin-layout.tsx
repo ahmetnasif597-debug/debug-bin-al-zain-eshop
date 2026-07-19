@@ -5,6 +5,7 @@ import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminOrderAlerts } from "@/hooks/use-admin-order-alerts";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -74,6 +75,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     onNewOrders: handleNewOrders,
     intervalMs: 15000,
   });
+
+  usePushNotifications({ enabled: isAdmin, role: "admin" });
 
   const clearBadge = (href: string) => {
     if (href === "/admin/orders") setNewOrderCount(0);

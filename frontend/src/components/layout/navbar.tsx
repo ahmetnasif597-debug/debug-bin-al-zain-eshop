@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useGetAuthMe } from "@/lib/api-client";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 export function Navbar() {
   const { totalItems } = useCart();
@@ -13,6 +14,7 @@ export function Navbar() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const { data: customer } = useGetAuthMe();
+  usePushNotifications({ enabled: !!customer, role: "customer" });
   const menuRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
