@@ -17,6 +17,7 @@ const router = Router();
 // خريطة نصوص الإشعارات العربية لكل حالة طلب
 const STATUS_PUSH_TEXT: Record<string, string> = {
   pending:    "طلبك قيد المراجعة",
+  confirmed:  "تم تأكيد طلبك ✅",
   processing: "طلبك جاري التجهيز الآن",
   delivering: "طلبك في الطريق إليك الآن 🚚",
   completed:  "تم تسليم طلبك بنجاح ✅",
