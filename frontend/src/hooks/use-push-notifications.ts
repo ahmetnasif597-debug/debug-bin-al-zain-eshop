@@ -51,3 +51,46 @@ async function registerPush(): Promise<void> {
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
   }
+
+  const saveRes = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(subscription),
+  });
+  if (!saveRes.ok) {
+    const body = await saveRes.text();
+    console.error("[Push] فشل حفظ الاشتراك في الباك‑إند:", saveRes.status, body);
+    return;
+  }
+
+  console.info("[Push] تم تسجيل اشتراك Push بنجاح");
+}
+
+export function usePushNotifications(options: Options): void {
+  const enabled = options.enabled;
+  const role = options.role;
+  const attempted = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || attempted.current) {
+      return;
+    }
+
+    const delayMs = role === "admin" ? 2000 : 12000;
+
+    const timer = setTimeout(function () {
+      registerPush()
+        .catch(function (err) {
+          console.error("[Push] خطأ غير متوقع:", err);
+        })
+        .finally(function () {
+          attempted.current = true;
+        });
+    }, delayMs);
+
+    return function () {
+      clearTimeout(timer);
+    };
+  }, [enabled, role]);
+}
