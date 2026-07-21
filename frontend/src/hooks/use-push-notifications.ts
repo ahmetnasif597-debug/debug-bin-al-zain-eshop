@@ -14,7 +14,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 async function registerPush(): Promise<void> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    alert("[Push] المتصفح لا يدعم Service Worker أو PushManager");
+    console.warn("[Push] المتصفح لا يدعم Service Worker أو PushManager");
     return;
   }
 
@@ -23,7 +23,7 @@ async function registerPush(): Promise<void> {
 
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
-    alert("[Push] الإذن مرفوض أو معلّق: " + permission);
+    console.warn("[Push] الإذن مرفوض أو معلّق:", permission);
     return;
   }
 
@@ -31,12 +31,12 @@ async function registerPush(): Promise<void> {
 
   const keyRes = await fetch("/api/push/vapid-key", { credentials: "include" });
   if (!keyRes.ok) {
-    alert("[Push] فشل جلب VAPID public key: " + keyRes.status);
+    console.error("[Push] فشل جلب VAPID public key:", keyRes.status);
     return;
   }
   const { publicKey } = await keyRes.json();
   if (!publicKey) {
-    alert("[Push] VAPID public key فارغ");
+    console.error("[Push] VAPID public key فارغ");
     return;
   }
 
@@ -51,46 +51,3 @@ async function registerPush(): Promise<void> {
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
   }
-
-  const saveRes = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(subscription),
-  });
-  if (!saveRes.ok) {
-    const body = await saveRes.text();
-    alert("[Push] فشل حفظ الاشتراك: " + saveRes.status + " - " + body);
-    return;
-  }
-
-  alert("[Push] تم تسجيل اشتراك Push بنجاح");
-}
-
-export function usePushNotifications(options: Options): void {
-  const enabled = options.enabled;
-  const role = options.role;
-  const attempted = useRef(false);
-
-  useEffect(() => {
-    if (!enabled || attempted.current) {
-      return;
-    }
-
-    const delayMs = role === "admin" ? 2000 : 3000;
-
-    const timer = setTimeout(function () {
-      registerPush()
-        .catch(function (err) {
-          alert("[Push] خطأ غير متوقع: " + (err instanceof Error ? err.message : String(err)));
-        })
-        .finally(function () {
-          attempted.current = true;
-        });
-    }, delayMs);
-
-    return function () {
-      clearTimeout(timer);
-    };
-  }, [enabled, role]);
-}
