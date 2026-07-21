@@ -4,7 +4,7 @@ import { useGetFeaturedProducts, useListCategories } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, HeartHandshake, Leaf, ShieldCheck, ArrowLeft, Download } from "lucide-react";
+import { CheckCircle2, HeartHandshake, Leaf, ShieldCheck, ArrowLeft } from "lucide-react";
 
 export default function Home() {
   const { data: featuredProducts, isLoading: loadingFeatured } = useGetFeaturedProducts();
@@ -46,17 +46,6 @@ export default function Home() {
             <div className="flex flex-wrap gap-4 justify-center">
               <Button size="lg" className="text-lg font-bold px-8" asChild>
                 <Link href="/products">تصفح المنتجات</Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-lg font-bold px-8 gap-2 bg-background/90 backdrop-blur-sm"
-                asChild
-              >
-                <a href="/downloads/zain-store.apk" download>
-                  <Download className="w-5 h-5" />
-                  حمّل التطبيق
-                </a>
               </Button>
             </div>
           </motion.div>
