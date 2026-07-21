@@ -27,7 +27,7 @@ function normalizeRow(raw: Record<string, unknown>): ParsedRow {
   };
 
   return {
-    nameAr: get("nameAr", "name_ar", "الاسم بالعربي", "الاسم", "name"),
+    nameAr: get("nameAr", "name_ar", "اسم المنتج", "الاسم بالعربي", "الاسم", "name"),
     nameEn: get("nameEn", "name_en", "الاسم بالإنجليزي"),
     descriptionAr: get("descriptionAr", "description_ar", "الوصف"),
     price: get("price", "السعر"),
