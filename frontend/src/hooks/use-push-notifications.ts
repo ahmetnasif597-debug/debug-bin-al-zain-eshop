@@ -1,16 +1,10 @@
 import { useEffect, useRef } from "react";
 
 interface Options {
-  /** هل المستخدم مسجّل الدخول (زبون أو أدمن)؟ */
   enabled: boolean;
-  /**
-   * admin  → نطلب الإذن بعد 2 ثانية (Push صميم عمله)
-   * customer → نؤخّر 3 ثواني (مؤقتاً للاختبار)
-   */
   role: "admin" | "customer";
 }
 
-/** يُحوّل مفتاح VAPID العام (Base64 URL) إلى Uint8Array */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -54,4 +48,49 @@ async function registerPush(): Promise<void> {
     if (existingSub) await existingSub.unsubscribe();
     subscription = await readyReg.pushManager.subscribe({
       userVisibleOnly: true,
-      app
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+  }
+
+  const saveRes = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(subscription),
+  });
+  if (!saveRes.ok) {
+    const body = await saveRes.text();
+    alert("[Push] فشل حفظ الاشتراك: " + saveRes.status + " - " + body);
+    return;
+  }
+
+  alert("[Push] تم تسجيل اشتراك Push بنجاح");
+}
+
+export function usePushNotifications(options: Options): void {
+  const enabled = options.enabled;
+  const role = options.role;
+  const attempted = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || attempted.current) {
+      return;
+    }
+
+    const delayMs = role === "admin" ? 2000 : 3000;
+
+    const timer = setTimeout(function () {
+      registerPush()
+        .catch(function (err) {
+          alert("[Push] خطأ غير متوقع: " + (err instanceof Error ? err.message : String(err)));
+        })
+        .finally(function () {
+          attempted.current = true;
+        });
+    }, delayMs);
+
+    return function () {
+      clearTimeout(timer);
+    };
+  }, [enabled, role]);
+}
