@@ -1,4 +1,4 @@
-import { MapPin, Phone, MessageCircle, Instagram, Facebook } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Instagram, Facebook, Download } from "lucide-react";
 
 export default function About() {
   return (
@@ -7,7 +7,14 @@ export default function About() {
 
         {/* Story Section */}
         <section className="text-center space-y-6">
-          <img src="/images/logo-transparent.png" alt="بن الزين" className="w-36 mx-auto mb-2" />
+          <a
+            href="/downloads/zain-store.apk"
+            download
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-bold rounded-full text-base hover:opacity-90 transition-opacity mb-2"
+          >
+            <Download className="w-5 h-5" />
+            حمّل التطبيق
+          </a>
           <h1 className="text-4xl md:text-5xl font-black text-primary">حكاية بن الزين</h1>
           <div className="w-24 h-1 bg-secondary mx-auto rounded-full"></div>
           <div className="prose prose-lg mx-auto prose-p:text-muted-foreground prose-p:leading-loose text-lg md:text-xl font-medium mt-8">
