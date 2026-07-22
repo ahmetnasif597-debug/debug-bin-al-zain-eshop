@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Users, Loader2, Phone, Mail, Calendar, Hash, User, Eye, KeyRound, Search } from "lucide-react";
+import { Users, Loader2, Phone, Mail, Calendar, Hash, User, Eye, KeyRound, Search, Ban, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,32 @@ export default function AdminCustomers() {
   const [pwError, setPwError] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [toggleLoadingId, setToggleLoadingId] = useState<number | null>(null);
+
+  const handleToggleActive = async (customer: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const action = customer.isActive ? "تعطيل" : "تفعيل";
+    if (!confirm(`هل أنت متأكد من ${action} حساب هذا الزبون؟\n\n${customer.fullName}`)) return;
+    setToggleLoadingId(customer.id);
+    try {
+      const res = await fetch(`/api/admin/customers/${customer.id}/toggle-active`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: data.error ?? "فشل تنفيذ العملية", variant: "destructive" });
+        return;
+      }
+      toast({ title: data.isActive ? "تم تفعيل الحساب" : "تم تعطيل الحساب" });
+      queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() });
+    } catch {
+      toast({ title: "خطأ في الاتصال", variant: "destructive" });
+    } finally {
+      setToggleLoadingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     if (!customers) return [];
@@ -123,9 +149,15 @@ export default function AdminCustomers() {
                     <span className="font-sans" dir="ltr">{customer.phone}</span>
                   </TableCell>
                   <TableCell>
-                    <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs font-bold">
-                      نشط
-                    </Badge>
+                    {customer.isActive ? (
+                      <Badge className="bg-green-100 text-green-700 border-green-200 hover:bg-green-100 text-xs font-bold">
+                        نشط
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 text-xs font-bold">
+                        معطل
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Button
@@ -139,15 +171,33 @@ export default function AdminCustomers() {
                     </Button>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5 text-primary hover:text-primary"
-                      onClick={(e) => { e.stopPropagation(); setSelected(customer); }}
-                    >
-                      <Eye className="w-4 h-4" />
-                      View
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-primary hover:text-primary"
+                        onClick={(e) => { e.stopPropagation(); setSelected(customer); }}
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={customer.isActive ? "gap-1.5 text-destructive hover:text-destructive" : "gap-1.5 text-green-600 hover:text-green-600"}
+                        disabled={toggleLoadingId === customer.id}
+                        onClick={(e) => handleToggleActive(customer, e)}
+                      >
+                        {toggleLoadingId === customer.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : customer.isActive ? (
+                          <Ban className="w-4 h-4" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
+                        {customer.isActive ? "تعطيل" : "تفعيل"}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -181,9 +231,15 @@ export default function AdminCustomers() {
                 </div>
                 <div>
                   <p className="text-xl font-black text-foreground">{selected.fullName}</p>
-                  <Badge variant="outline" className="text-xs mt-1 text-green-600 border-green-300 bg-green-50">
-                    حساب نشط
-                  </Badge>
+                  {selected.isActive ? (
+                    <Badge variant="outline" className="text-xs mt-1 text-green-600 border-green-300 bg-green-50">
+                      حساب نشط
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs mt-1 text-red-600 border-red-300 bg-red-50">
+                      حساب معطل
+                    </Badge>
+                  )}
                 </div>
               </div>
 
