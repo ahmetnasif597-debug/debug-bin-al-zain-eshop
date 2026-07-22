@@ -65,6 +65,9 @@ router.post("/auth/login", async (req: any, res: any) => {
     if (!customer || customer.passwordHash !== hashPassword(password)) {
       return res.status(401).json({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" });
     }
+    if (!customer.isActive) {
+      return res.status(403).json({ error: "تم تعطيل هذا الحساب. يرجى التواصل مع الإدارة." });
+    }
     setAuthCookie(res, customer.id, customer.fullName);
     return res.json({
       id: customer.id,
@@ -92,6 +95,10 @@ router.get("/auth/me", async (req: any, res: any) => {
     if (!customer) {
       res.clearCookie("token");
       return res.status(401).json({ error: "غير مسجل الدخول" });
+    }
+    if (!customer.isActive) {
+      res.clearCookie("token");
+      return res.status(403).json({ error: "تم تعطيل هذا الحساب" });
     }
     return res.json({
       id: customer.id,
