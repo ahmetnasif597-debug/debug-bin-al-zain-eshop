@@ -107,6 +107,7 @@ router.get("/admin/customers", async (req: any, res: any) => {
         phone: customersTable.phone,
         email: customersTable.email,
         createdAt: customersTable.createdAt,
+        isActive: customersTable.isActive,
       })
       .from(customersTable)
       .orderBy(customersTable.createdAt);
@@ -134,6 +135,24 @@ router.post("/admin/customers/:id/reset-password", async (req: any, res: any) =>
     return res.json({ ok: true, message: "Success! The password has been updated." });
   } catch (err) {
     req.log.error({ err }, "Failed to reset customer password");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/admin/customers/:id/toggle-active", async (req: any, res: any) => {
+  if (!req.user?.isAdmin) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  try {
+    const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, id)).limit(1);
+    if (!customer) return res.status(404).json({ error: "Customer not found" });
+    const newStatus = !customer.isActive;
+    await db.update(customersTable).set({ isActive: newStatus }).where(eq(customersTable.id, id));
+    return res.json({ ok: true, isActive: newStatus });
+  } catch (err) {
+    req.log.error({ err }, "Failed to toggle customer active status");
     return res.status(500).json({ error: "Internal server error" });
   }
 });
