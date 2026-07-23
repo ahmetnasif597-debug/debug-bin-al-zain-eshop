@@ -87,6 +87,15 @@ router.post("/auth/logout", (req: any, res: any) => {
 });
 
 router.get("/auth/me", async (req: any, res: any) => {
+  // 💡 حل مشكلة الأدمن: إذا كان الحساب مسؤولاً، نمرره فوراً بـ 200 لمنع اختفاء أزرار لوحة التحكم
+  if (req.user?.isAdmin) {
+    return res.json({
+      id: req.user.id || 0,
+      fullName: req.user.fullName || "المسؤول",
+      isAdmin: true,
+    });
+  }
+
   if (!req.user?.customerId) {
     return res.status(401).json({ error: "غير مسجل الدخول" });
   }
