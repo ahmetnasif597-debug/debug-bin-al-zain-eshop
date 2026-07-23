@@ -10,8 +10,9 @@ import {
 
 const router = Router();
 
+// الدالة المصلحة مع حماية الـ Optional Chaining لمنع الكراش
 function requireAdmin(req: any, res: any): boolean {
-  if (!req.session.isAdmin) {
+  if (!req.session?.isAdmin) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
