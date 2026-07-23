@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, productsTable, categoriesTable } from "../db";
-import { eq, and, ilike, or } from "drizzle-orm";
+import { eq, and, ilike, or, sql, asc } from "drizzle-orm";
 import {
   GetProductParams,
   ListProductsQueryParams,
@@ -11,11 +11,19 @@ import {
 const router = Router();
 
 function requireAdmin(req: any, res: any): boolean {
-  if (!req.user?.isAdmin) {
+  if (!req.session.isAdmin) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
   return true;
+}
+
+// يضيف عمود ترتيب العرض تلقائيًا إذا مو موجود بعد بقاعدة البيانات - ما بيحتاج migration يدوي
+let sortOrderColumnEnsured = false;
+async function ensureSortOrderColumn() {
+  if (sortOrderColumnEnsured) return;
+  await db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;`);
+  sortOrderColumnEnsured = true;
 }
 
 const productSelect = {
@@ -36,6 +44,7 @@ const productSelect = {
   availableWeights: productsTable.availableWeights,
   allowCustomWeight: productsTable.allowCustomWeight,
   availableFlavors: productsTable.availableFlavors,
+  sortOrder: productsTable.sortOrder,
 };
 
 router.get("/products/featured", async (req: any, res: any) => {
@@ -56,6 +65,7 @@ router.get("/products/featured", async (req: any, res: any) => {
 
 router.get("/products", async (req: any, res: any) => {
   try {
+    await ensureSortOrderColumn();
     const params = ListProductsQueryParams.parse({
       categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
       featured: req.query.featured !== undefined ? req.query.featured === "true" : undefined,
@@ -79,7 +89,7 @@ router.get("/products", async (req: any, res: any) => {
       .from(productsTable)
       .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(productsTable.id);
+      .orderBy(asc(productsTable.categoryId), asc(productsTable.sortOrder), asc(productsTable.id));
 
     return res.json(products);
   } catch (err) {
@@ -130,6 +140,29 @@ router.post("/products", async (req: any, res: any) => {
     return res.status(201).json(product);
   } catch (err) {
     req.log.error({ err }, "Failed to create product");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// إعادة ترتيب المنتجات (سحب وإفلات) - يستقبل قائمة {id, sortOrder} ويحدثها دفعة وحدة
+router.patch("/products/reorder", async (req: any, res: any) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    await ensureSortOrderColumn();
+    const items = req.body?.items as { id: number; sortOrder: number }[] | undefined;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "Missing or invalid 'items' array" });
+    }
+    for (const item of items) {
+      if (typeof item.id !== "number" || typeof item.sortOrder !== "number") continue;
+      await db
+        .update(productsTable)
+        .set({ sortOrder: item.sortOrder })
+        .where(eq(productsTable.id, item.id));
+    }
+    return res.json({ ok: true, updated: items.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to reorder products");
     return res.status(500).json({ error: "Internal server error" });
   }
 });
