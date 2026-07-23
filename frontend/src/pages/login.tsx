@@ -9,6 +9,8 @@ import { User, Phone, Lock, LogIn, UserPlus, Eye, EyeOff } from "lucide-react";
 
 type Tab = "login" | "register";
 
+const SYRIAN_PHONE_REGEX = /^09\d{8}$/;
+
 export default function LoginPage() {
   const [tab, setTab] = useState<Tab>("login");
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +47,10 @@ export default function LoginPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!SYRIAN_PHONE_REGEX.test(registerForm.phone.trim())) {
+      toast({ title: "رقم الهاتف يجب أن يكون رقماً سورياً صحيحاً (يبدأ بـ 09 ويتكون من 10 أرقام)", variant: "destructive" });
+      return;
+    }
     if (registerForm.password.length < 6) {
       toast({ title: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
       return;
@@ -75,7 +81,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-card to-background py-12 px-4">
       <div className="w-full max-w-md">
 
-        {/* Logo & Brand */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -86,14 +91,12 @@ export default function LoginPage() {
           <p className="text-muted-foreground font-medium text-sm">مذاق القهوة الأصلية</p>
         </motion.div>
 
-        {/* Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="bg-card rounded-3xl shadow-xl border border-border overflow-hidden"
         >
-          {/* Tab Switcher */}
           <div className="flex relative">
             <button
               onClick={() => setTab("login")}
@@ -113,7 +116,6 @@ export default function LoginPage() {
               <UserPlus className="w-4 h-4" />
               إنشاء حساب
             </button>
-            {/* Sliding indicator */}
             <motion.div
               className="absolute bottom-0 h-0.5 bg-primary rounded-full"
               animate={{ right: tab === "login" ? "50%" : "0%", width: "50%" }}
@@ -123,7 +125,6 @@ export default function LoginPage() {
 
           <div className="p-8">
             <AnimatePresence mode="wait">
-              {/* Login Form */}
               {tab === "login" && (
                 <motion.form
                   key="login"
@@ -190,7 +191,6 @@ export default function LoginPage() {
                 </motion.form>
               )}
 
-              {/* Register Form */}
               {tab === "register" && (
                 <motion.form
                   key="register"
@@ -231,10 +231,15 @@ export default function LoginPage() {
                         className="pr-10"
                         dir="ltr"
                         required
+                        maxLength={10}
                         value={registerForm.phone}
-                        onChange={e => setRegisterForm({ ...registerForm, phone: e.target.value })}
+                        onChange={e => {
+                          const digitsOnly = e.target.value.replace(/\D/g, "");
+                          setRegisterForm({ ...registerForm, phone: digitsOnly });
+                        }}
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">يجب أن يبدأ الرقم بـ 09 ويتكون من 10 أرقام</p>
                   </div>
 
                   <div className="space-y-2">
@@ -276,7 +281,6 @@ export default function LoginPage() {
           </div>
         </motion.div>
 
-        {/* Decorative text */}
         <p className="text-center text-primary/40 mt-6 text-xl">❋ ❋ ❋</p>
       </div>
     </div>
