@@ -19,8 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon, FileSpreadsheet } from "lucide-react";
-import { BulkImportModal } from "@/components/admin/BulkImportModal";
+import { Plus, Search, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon, GripVertical } from "lucide-react";
 
 async function uploadImageToStorage(file: File): Promise<string> {
   const formData = new FormData();
@@ -78,7 +77,6 @@ export default function AdminProducts() {
   });
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadPreview, setUploadPreview] = useState<string>("");
@@ -189,7 +187,7 @@ export default function AdminProducts() {
 
   const filteredProducts = products?.filter(p => p.nameAr.includes(search)) || [];
 
-  // تجميع المنتجات حسب الفئة - كل فئة بمجموعتها الخاصة بدل قائمة واحدة مخلوطة
+  // تجميع المنتجات حسب الفئة، مرتبة حسب sortOrder يلي راجع من السيرفر
   const groupedByCategory = useMemo(() => {
     const groups = new Map<number, { categoryName: string; items: typeof filteredProducts }>();
     for (const p of filteredProducts) {
@@ -198,7 +196,6 @@ export default function AdminProducts() {
       }
       groups.get(p.categoryId)!.items.push(p);
     }
-    // نحافظ على نفس ترتيب الفئات كما هو بصفحة "الفئات"
     if (categories) {
       const ordered = new Map<number, { categoryName: string; items: typeof filteredProducts }>();
       for (const cat of categories) {
@@ -212,18 +209,73 @@ export default function AdminProducts() {
     return groups;
   }, [filteredProducts, categories]);
 
+  // حالة محلية لترتيب السحب والإفلات (منسوخة من groupedByCategory، تتحدث فورًا أثناء السحب)
+  const [localOrder, setLocalOrder] = useState<Map<number, typeof filteredProducts> | null>(null);
+  const displayGroups = localOrder ?? groupedByCategory;
+
+  const dragItem = useRef<{ categoryId: number; index: number } | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  const handleDragStart = (categoryId: number, index: number) => {
+    dragItem.current = { categoryId, index };
+  };
+
+  const handleDragOver = (e: React.DragEvent, categoryId: number, index: number) => {
+    e.preventDefault();
+    if (!dragItem.current || dragItem.current.categoryId !== categoryId) return;
+    if (dragItem.current.index === index) return;
+
+    const currentGroups = localOrder ?? new Map(groupedByCategory);
+    const newGroups = new Map(currentGroups);
+    const group = newGroups.get(categoryId);
+    if (!group) return;
+
+    const itemsCopy = [...group.items];
+    const [moved] = itemsCopy.splice(dragItem.current.index, 1);
+    itemsCopy.splice(index, 0, moved);
+
+    newGroups.set(categoryId, { ...group, items: itemsCopy });
+    dragItem.current.index = index;
+    setLocalOrder(newGroups);
+  };
+
+  const handleDragEnd = async () => {
+    const categoryId = dragItem.current?.categoryId;
+    dragItem.current = null;
+    if (categoryId == null || !localOrder) return;
+
+    const group = localOrder.get(categoryId);
+    if (!group) return;
+
+    setIsSavingOrder(true);
+    try {
+      const items = group.items.map((p, idx) => ({ id: p.id, sortOrder: idx }));
+      const res = await fetch("/api/products/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ items }),
+      });
+      if (!res.ok) {
+        toast({ title: "تعذر حفظ الترتيب الجديد", variant: "destructive" });
+      } else {
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+      }
+    } catch {
+      toast({ title: "تعذر الاتصال بالسيرفر", variant: "destructive" });
+    } finally {
+      setIsSavingOrder(false);
+      setLocalOrder(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-black text-foreground">إدارة المنتجات</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsBulkImportOpen(true)} variant="outline" className="gap-2 font-bold">
-            <FileSpreadsheet className="w-5 h-5" /> استيراد من ملف Excel
-          </Button>
-          <Button onClick={() => handleOpen()} className="gap-2 font-bold">
-            <Plus className="w-5 h-5" /> إضافة منتج
-          </Button>
-        </div>
+        <Button onClick={() => handleOpen()} className="gap-2 font-bold">
+          <Plus className="w-5 h-5" /> إضافة منتج
+        </Button>
       </div>
 
       <div className="flex items-center gap-2 bg-card p-2 rounded-xl border border-border">
@@ -236,25 +288,41 @@ export default function AdminProducts() {
         />
       </div>
 
+      <p className="text-xs text-muted-foreground -mt-2">
+        اسحب المنتج من أيقونة ⠿ لترتيبه داخل نفس الفئة {isSavingOrder && "— جاري الحفظ..."}
+      </p>
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
-      ) : groupedByCategory.size === 0 ? (
+      ) : displayGroups.size === 0 ? (
         <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border border-border">
           لا توجد منتجات مطابقة
         </div>
       ) : (
         <div className="space-y-6">
-          {Array.from(groupedByCategory.entries()).map(([categoryId, group]) => (
+          {Array.from(displayGroups.entries()).map(([categoryId, group]) => (
             <div key={categoryId} className="bg-card rounded-xl border border-border overflow-hidden">
               <div className="px-4 py-3 bg-muted/40 border-b border-border flex items-center justify-between">
                 <h2 className="font-black text-base text-primary">{group.categoryName}</h2>
                 <span className="text-xs text-muted-foreground font-medium">{group.items.length} منتج</span>
               </div>
               <div className="divide-y divide-border">
-                {group.items.map(p => (
-                  <div key={p.id} className="flex items-center gap-3 p-3">
+                {group.items.map((p, idx) => (
+                  <div
+                    key={p.id}
+                    draggable={!search}
+                    onDragStart={() => handleDragStart(categoryId, idx)}
+                    onDragOver={(e) => handleDragOver(e, categoryId, idx)}
+                    onDragEnd={handleDragEnd}
+                    className="flex items-center gap-2 p-3 bg-card"
+                  >
+                    {!search && (
+                      <div className="cursor-grab active:cursor-grabbing text-muted-foreground flex-shrink-0 touch-none">
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+                    )}
                     {p.imageUrl ? (
                       <img src={p.imageUrl} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                     ) : (
@@ -465,15 +533,6 @@ export default function AdminProducts() {
           </form>
         </DialogContent>
       </Dialog>
-
-      <BulkImportModal
-        isOpen={isBulkImportOpen}
-        onClose={() => setIsBulkImportOpen(false)}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
-        }}
-      />
     </div>
   );
 }
