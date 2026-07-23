@@ -6,6 +6,7 @@ import { signToken } from "../lib/jwt.js";
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === "production";
+const SYRIAN_PHONE_REGEX = /^09\d{8}$/;
 
 function hashPassword(password: string): string {
   return createHash("sha256").update(password + "binalzain-salt").digest("hex");
@@ -31,10 +32,13 @@ router.post("/auth/register", async (req: any, res: any) => {
     if (!fullName || !phone || !password) {
       return res.status(400).json({ error: "جميع الحقول مطلوبة" });
     }
+    const normalizedPhone = normalizePhone(phone);
+    if (!SYRIAN_PHONE_REGEX.test(normalizedPhone)) {
+      return res.status(400).json({ error: "رقم الهاتف يجب أن يكون رقماً سورياً صحيحاً (يبدأ بـ 09 ويتكون من 10 أرقام)" });
+    }
     if (password.length < 6) {
       return res.status(400).json({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" });
     }
-    const normalizedPhone = normalizePhone(phone);
     const existing = await db.select().from(customersTable).where(eq(customersTable.phone, normalizedPhone)).limit(1);
     if (existing.length > 0) {
       return res.status(409).json({ error: "رقم الهاتف مستخدم مسبقاً" });
@@ -87,7 +91,6 @@ router.post("/auth/logout", (req: any, res: any) => {
 });
 
 router.get("/auth/me", async (req: any, res: any) => {
-  // 💡 حل مشكلة الأدمن: إذا كان الحساب مسؤولاً، نمرره فوراً بـ 200 لمنع اختفاء أزرار لوحة التحكم
   if (req.user?.isAdmin) {
     return res.json({
       id: req.user.id || 0,
@@ -138,7 +141,11 @@ router.patch("/auth/profile", async (req: any, res: any) => {
       updates.fullName = fullName.trim();
     }
     if (phone && phone.trim()) {
-      updates.phone = normalizePhone(phone);
+      const normalizedNewPhone = normalizePhone(phone);
+      if (!SYRIAN_PHONE_REGEX.test(normalizedNewPhone)) {
+        return res.status(400).json({ error: "رقم الهاتف يجب أن يكون رقماً سورياً صحيحاً (يبدأ بـ 09 ويتكون من 10 أرقام)" });
+      }
+      updates.phone = normalizedNewPhone;
     }
 
     if (newPassword) {
