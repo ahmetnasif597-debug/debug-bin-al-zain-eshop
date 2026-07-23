@@ -10,9 +10,9 @@ import {
 
 const router = Router();
 
-// الدالة المصلحة مع حماية الـ Optional Chaining لمنع الكراش
+// الدالة المصلحة بالكامل لتعمل مع نظام الـ JWT والـ Cookies بمشروعك
 function requireAdmin(req: any, res: any): boolean {
-  if (!req.session?.isAdmin) {
+  if (!req.user?.isAdmin) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }
@@ -145,7 +145,7 @@ router.post("/products", async (req: any, res: any) => {
   }
 });
 
-// إعادة ترتيب المنتجات (سحب وإفلات) - يستقبل قائمة {id, sortOrder} ويحدثها دفعة وحدة
+// إعادة ترتيب المنتجات (سحب وإفلات)
 router.patch("/products/reorder", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;
   try {
