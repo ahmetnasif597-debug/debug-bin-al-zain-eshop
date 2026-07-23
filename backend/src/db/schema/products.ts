@@ -20,6 +20,7 @@ export const productsTable = pgTable("products", {
   availableWeights: jsonb("available_weights").$type<number[]>(),
   allowCustomWeight: boolean("allow_custom_weight").notNull().default(false),
   availableFlavors: jsonb("available_flavors").$type<string[]>(),
+  sortOrder: integer("sort_order").notNull().default(0),
 });
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({ id: true });
