@@ -8,6 +8,7 @@ import { AdminProvider } from "@/context/admin-context";
 import { StoreStatusProvider } from "@/context/store-status-context";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { StoreStatusBanner } from "@/components/store-status-banner";
@@ -49,10 +50,11 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-[100dvh]">
       <StoreStatusBanner />
       <Navbar />
-      <main className="flex-grow">
+      <main className="flex-grow pb-16 md:pb-0">
         {children}
       </main>
       <Footer />
+      <BottomNav />
     </div>
   );
 }
