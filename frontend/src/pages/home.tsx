@@ -4,14 +4,56 @@ import { useGetFeaturedProducts, useListCategories } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, X } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const { data: featuredProducts, isLoading: loadingFeatured } = useGetFeaturedProducts();
   const { data: categories, isLoading: loadingCategories } = useListCategories();
 
+  const [showBanner, setShowBanner] = useState(false);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("apk-downloaded");
+    if (!dismissed) setShowBanner(true);
+  }, []);
+
+  const handleDownload = () => {
+    localStorage.setItem("apk-downloaded", "true");
+    setShowBanner(false);
+    window.location.href = "/متجر الزين.apk";
+  };
+
+  const handleDismiss = () => {
+    setShowBanner(false);
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
+
+      {/* APK Download Banner */}
+      {showBanner && (
+        <div
+          className="flex items-center justify-between gap-3 px-4 py-3 md:hidden"
+          style={{ backgroundColor: "#3b1f0e" }}
+        >
+          <button onClick={handleDismiss} className="flex-shrink-0">
+            <X className="w-4 h-4" style={{ color: "#e8d5b0" }} />
+          </button>
+          <p className="text-sm font-bold flex-1 text-center" style={{ color: "#e8d5b0" }}>
+            حمّل تطبيق متجر الزين!
+          </p>
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
+            style={{ backgroundColor: "#e8d5b0", color: "#3b1f0e" }}
+          >
+            <Download className="w-3.5 h-3.5" />
+            تحميل
+          </button>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative h-[60vh] min-h-[460px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
