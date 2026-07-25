@@ -4,18 +4,11 @@ import { useGetFeaturedProducts, useListCategories } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, HeartHandshake, Leaf, ShieldCheck, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export default function Home() {
   const { data: featuredProducts, isLoading: loadingFeatured } = useGetFeaturedProducts();
   const { data: categories, isLoading: loadingCategories } = useListCategories();
-
-  const features = [
-    { icon: <ShieldCheck className="w-8 h-8" />, title: "جودة عالية", desc: "نختار أفضل المنتجات بعناية فائقة" },
-    { icon: <HeartHandshake className="w-8 h-8" />, title: "أسعار مناسبة", desc: "أفضل قيمة مقابل السعر في السوق" },
-    { icon: <Leaf className="w-8 h-8" />, title: "منتجات طازجة", desc: "قهوة محمصة يومياً ومكسرات طازجة" },
-    { icon: <CheckCircle2 className="w-8 h-8" />, title: "خدمة مميزة", desc: "رضا الزبون هو غايتنا الأولى" },
-  ];
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -158,39 +151,6 @@ export default function Home() {
             <Button variant="outline" className="font-bold w-full" asChild>
               <Link href="/products">عرض كل المنتجات</Link>
             </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Decorative Divider */}
-      <div className="flex justify-center py-8 text-primary/40 text-2xl">
-        ❋ ❋ ❋
-      </div>
-
-      {/* Features — placed right before contact/footer */}
-      <section className="py-12 bg-card">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-black text-primary mb-3">لماذا بن الزين؟</h2>
-            <div className="w-20 h-1 bg-secondary mx-auto rounded-full"></div>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="flex flex-col items-center text-center p-6"
-              >
-                <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.desc}</p>
-              </motion.div>
-            ))}
           </div>
         </div>
       </section>
