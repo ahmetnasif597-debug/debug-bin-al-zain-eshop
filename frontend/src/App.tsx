@@ -1,116 +1,176 @@
-import { useEffect, useState } from "react";
-import { X, Download, Share } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { CartProvider } from "@/context/cart-context";
+import { AdminProvider } from "@/context/admin-context";
+import { StoreStatusProvider } from "@/context/store-status-context";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { AdminGuard } from "@/components/admin/admin-guard";
+import { AdminLayout } from "@/components/admin/admin-layout";
+import { StoreStatusBanner } from "@/components/store-status-banner";
+import { InstallPrompt } from "@/components/install-prompt";
 
-function isIos(): boolean {
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-}
+import Home from "@/pages/home";
+import Products from "@/pages/products";
+import ProductDetail from "@/pages/product-detail";
+import Cart from "@/pages/cart";
+import Calculator from "@/pages/calculator";
+import About from "@/pages/about";
+import NotFound from "@/pages/not-found";
 
-function isStandalone(): boolean {
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminProducts from "@/pages/admin/products";
+import AdminCategories from "@/pages/admin/categories";
+import AdminOrders from "@/pages/admin/orders";
+import AdminReports from "@/pages/admin/reports";
+import AdminCustomers from "@/pages/admin/customers";
+import AdminNotifications from "@/pages/admin/notifications";
+import AdminSettings from "@/pages/admin/settings";
+import LoginPage from "@/pages/login";
+import ProfilePage from "@/pages/profile";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: unknown) => {
+        const status = (error as { status?: number; response?: { status?: number } })?.status
+          ?? (error as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403) return false;
+        return failureCount < 3;
+      },
+    },
+  },
+});
+
+function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
-  );
-}
-
-export function InstallPrompt() {
-  const [visible, setVisible] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showIosInstructions, setShowIosInstructions] = useState(false);
-
-  useEffect(() => {
-    // إذا التطبيق مثبّت مسبقاً، لا تُظهر شيئاً أبداً
-    if (isStandalone()) return;
-
-    if (isIos()) {
-      // آيفون: لا يوجد حدث beforeinstallprompt، نعرض البانر مباشرة
-      setVisible(true);
-      return;
-    }
-
-    // أندرويد/كروم: ننتظر حدث beforeinstallprompt
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setVisible(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (isIos()) {
-      setShowIosInstructions(true);
-      return;
-    }
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setVisible(false);
-    }
-    setDeferredPrompt(null);
-  };
-
-  const handleDismiss = () => {
-    setVisible(false);
-    setShowIosInstructions(false);
-    // لا نحفظ أي شيء في localStorage — يظهر من جديد بكل زيارة كما طُلب
-  };
-
-  if (!visible) return null;
-
-  return (
-    <div
-      className="fixed top-0 left-0 right-0 z-[60] px-4 py-3 flex items-center justify-between gap-3 shadow-md"
-      style={{ backgroundColor: "#3b1f0e" }}
-    >
-      {!showIosInstructions ? (
-        <>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <img src="/images/logo-transparent.png" alt="بن الزين" className="w-9 h-9 flex-shrink-0" />
-            <div className="min-w-0">
-              <p className="text-sm font-bold truncate" style={{ color: "#e8d5b0" }}>
-                ثبّت تطبيق بن الزين
-              </p>
-              <p className="text-xs truncate" style={{ color: "#c9b896" }}>
-                للوصول السريع من شاشتك الرئيسية
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button
-              size="sm"
-              className="gap-1.5 font-bold"
-              style={{ backgroundColor: "#e8d5b0", color: "#3b1f0e" }}
-              onClick={handleInstallClick}
-            >
-              <Download className="w-4 h-4" />
-              تثبيت
-            </Button>
-            <button
-              onClick={handleDismiss}
-              className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-              aria-label="إغلاق"
-            >
-              <X className="w-5 h-5" style={{ color: "#e8d5b0" }} />
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="flex items-center justify-between gap-3 w-full">
-          <p className="text-sm font-medium flex-1" style={{ color: "#e8d5b0" }}>
-            اضغط <Share className="w-4 h-4 inline mx-1" /> ثم "إضافة إلى الشاشة الرئيسية"
-          </p>
-          <button
-            onClick={handleDismiss}
-            className="p-1.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
-            aria-label="إغلاق"
-          >
-            <X className="w-5 h-5" style={{ color: "#e8d5b0" }} />
-          </button>
-        </div>
-      )}
+    <div className="flex flex-col min-h-[100dvh]">
+      <InstallPrompt />
+      <StoreStatusBanner />
+      <Navbar />
+      <main className="flex-grow pb-16 md:pb-0">
+        {children}
+      </main>
+      <Footer />
+      <BottomNav />
     </div>
   );
 }
+
+function Router() {
+  return (
+    <Switch>
+      {/* Admin Routes */}
+      <Route path="/admin">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminDashboard />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/products">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminProducts />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/categories">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminCategories />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/orders">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminOrders />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/reports">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminReports />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/customers">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminCustomers />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/notifications">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminNotifications />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/settings">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminSettings />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+
+      {/* Public Routes */}
+      <Route path="/">
+        <PublicLayout><Home /></PublicLayout>
+      </Route>
+      <Route path="/products">
+        <PublicLayout><Products /></PublicLayout>
+      </Route>
+      <Route path="/products/:id">
+        <PublicLayout><ProductDetail /></PublicLayout>
+      </Route>
+      <Route path="/cart">
+        <PublicLayout><Cart /></PublicLayout>
+      </Route>
+      <Route path="/calculator">
+        <PublicLayout><Calculator /></PublicLayout>
+      </Route>
+      <Route path="/about">
+        <PublicLayout><About /></PublicLayout>
+      </Route>
+      <Route path="/login">
+        <LoginPage />
+      </Route>
+      <Route path="/profile">
+        <PublicLayout><ProfilePage /></PublicLayout>
+      </Route>
+      <Route>
+        <PublicLayout><NotFound /></PublicLayout>
+      </Route>
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <StoreStatusProvider>
+          <CartProvider>
+            <AdminProvider>
+              <WouterRouter hook={useHashLocation}>
+                <Router />
+              </WouterRouter>
+              <Toaster />
+            </AdminProvider>
+          </CartProvider>
+        </StoreStatusProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
