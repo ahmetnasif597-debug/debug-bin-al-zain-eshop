@@ -16,7 +16,7 @@ export function BottomNav() {
   return (
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-primary/20"
-      style={{ backgroundColor: "#3b1f0e" }}
+      style={{ backgroundColor: "#e8d5b0" }}
     >
       <div className="flex items-center justify-around h-16">
         {tabs.map((tab) => {
@@ -30,11 +30,11 @@ export function BottomNav() {
             >
               <Icon
                 className="w-5 h-5 transition-colors"
-                style={{ color: isActive ? "#e8d5b0" : "#a07850" }}
+                style={{ color: isActive ? "#3b1f0e" : "#7a5a3a" }}
               />
               <span
                 className="text-[10px] font-bold transition-colors"
-                style={{ color: isActive ? "#e8d5b0" : "#a07850" }}
+                style={{ color: isActive ? "#3b1f0e" : "#7a5a3a" }}
               >
                 {tab.label}
               </span>
