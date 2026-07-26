@@ -45,7 +45,6 @@ export default function Cart() {
   const [delivery, setDelivery] = useState<"home" | "pickup">(storeStatus === "pickup_only" ? "pickup" : "home");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Location state
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string>("");
@@ -75,7 +74,7 @@ export default function Cart() {
         setLocationCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocationStatus("success");
       },
-      (err) => {
+      () => {
         setLocationError("لم يتم السماح بالوصول للموقع، تأكد من إذن الموقع في المتصفح");
         setLocationStatus("error");
       },
@@ -92,32 +91,20 @@ export default function Cart() {
   };
 
   const handleWhatsAppCheckout = async () => {
-    if (!name.trim()) {
-      showError("الرجاء إدخال الاسم الكامل");
-      return;
-    }
-    if (!phone.trim()) {
-      showError("الرجاء إدخال رقم الهاتف");
-      return;
-    }
-    if (!/^\d{10}$/.test(phone.trim())) {
-      showError("رقم الهاتف يجب أن يتكون من 10 أرقام فقط (بدون حروف أو رموز)");
-      return;
-    }
-    if (delivery === "home" && locationStatus !== "success") {
-      showError("الرجاء إرسال موقعك من الخريطة");
-      return;
-    }
+    if (!name.trim()) { showError("الرجاء إدخال الاسم الكامل"); return; }
+    if (!phone.trim()) { showError("الرجاء إدخال رقم الهاتف"); return; }
+    if (!/^\d{10}$/.test(phone.trim())) { showError("رقم الهاتف يجب أن يتكون من 10 أرقام فقط (بدون حروف أو رموز)"); return; }
+    if (delivery === "home" && locationStatus !== "success") { showError("الرجاء إرسال موقعك من الخريطة"); return; }
     setValidationError("");
     setIsSubmitting(true);
 
     const phoneNumber = "963962823756";
-
     const locationText = locationCoords
       ? `https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`
       : "—";
 
-    // حفظ الطلب في قاعدة البيانات - لازم نتحقق من النتيجة فعليًا قبل ما نكمل
+    let savedOrderId: number | null = null;
+
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -129,10 +116,9 @@ export default function Cart() {
           notes: `الموقع: ${locationText} | طريقة الاستلام: ${delivery === "home" ? "توصيل للمنزل" : "استلام من المحل"}`,
           totalPrice,
           items: items.map((item) => {
-            const unitPrice =
-              item.selectedWeight && item.product.soldByWeight
-                ? (item.selectedWeight / 1000) * item.product.price
-                : item.product.price;
+            const unitPrice = item.selectedWeight && item.product.soldByWeight
+              ? (item.selectedWeight / 1000) * item.product.price
+              : item.product.price;
             return {
               productId: item.product.id,
               nameAr: item.product.nameAr,
@@ -146,21 +132,16 @@ export default function Cart() {
       });
 
       if (!res.ok) {
-        // السيرفر رفض الطلب - نوقف هون ونعلم الزبون، مش نفتح واتساب وكأنه نجح
         let errorDetail = "";
-        try {
-          const errJson = await res.json();
-          errorDetail = errJson?.error ?? `HTTP ${res.status}`;
-        } catch {
-          errorDetail = `HTTP ${res.status}`;
-        }
-        console.error("Order save failed:", errorDetail);
+        try { const errJson = await res.json(); errorDetail = errJson?.error ?? `HTTP ${res.status}`; } catch { errorDetail = `HTTP ${res.status}`; }
         setIsSubmitting(false);
         showError(`تعذر حفظ الطلب بالنظام (${errorDetail}). حاول مرة أخرى أو تواصل معنا مباشرة.`);
         return;
       }
+
+      const orderData = await res.json();
+      savedOrderId = orderData?.id ?? null;
     } catch (err) {
-      console.error("Failed to save order (network error):", err);
       setIsSubmitting(false);
       showError("تعذر الاتصال بالسيرفر لحفظ الطلب. تحقق من الإنترنت وحاول مرة أخرى.");
       return;
@@ -168,15 +149,17 @@ export default function Cart() {
 
     setIsSubmitting(false);
 
-    // فتح واتساب - فقط بعد التأكد إن الطلب انحفظ فعليًا
+    // بناء رسالة الواتساب مع رقم الفاتورة والتاريخ والوقت
+    const now = new Date();
+    const invoiceNumber = savedOrderId ? `BZ-${1000 + savedOrderId}` : `BZ-${Date.now().toString().slice(-4)}`;
+    const dateStr = now.toLocaleDateString("ar-SY", { year: "numeric", month: "2-digit", day: "2-digit" });
+    const timeStr = now.toLocaleTimeString("ar-SY", { hour: "2-digit", minute: "2-digit" });
+
     let orderItems = "";
     items.forEach((item) => {
       const weightText = item.selectedWeight
-        ? item.selectedWeight >= 1000
-          ? `${item.selectedWeight / 1000} كيلو`
-          : `${item.selectedWeight} غ`
+        ? item.selectedWeight >= 1000 ? `${item.selectedWeight / 1000} كيلو` : `${item.selectedWeight} غ`
         : null;
-
       if (item.flavorBreakdown && item.flavorBreakdown.length > 0) {
         const flavorText = item.flavorBreakdown.map(f => `${f.flavor} ×${f.quantity}`).join("، ");
         orderItems += `• ${item.product.nameAr}${weightText ? ` - ${weightText}` : ""} | النكهات: ${flavorText}\n`;
@@ -188,6 +171,9 @@ export default function Cart() {
     const deliveryMethod = delivery === "home" ? "توصيل للمنزل 🛵" : "استلام من المحل 🏪";
 
     let message = `☕ *متجر بن الزين | طلب جديد*\n`;
+    message += `━━━━━━━━━━━━━━━━━━\n`;
+    message += `🧾 *رقم الفاتورة:* ${invoiceNumber}\n`;
+    message += `📅 *التاريخ:* ${dateStr}  🕐 *الوقت:* ${timeStr}\n`;
     message += `━━━━━━━━━━━━━━━━━━\n\n`;
     message += `👤 *بيانات الزبون:*\n`;
     message += `الاسم: ${name || "—"}\n`;
@@ -198,11 +184,12 @@ export default function Cart() {
     message += `\n🛒 *تفاصيل الطلب:*\n`;
     message += orderItems;
     message += `\n📦 *طريقة الاستلام:* ${deliveryMethod}\n`;
-    message += `💰 *المجموع النهائي:* ${totalPrice.toLocaleString("ar-SY")} ل.س`;
+    message += `━━━━━━━━━━━━━━━━━━\n`;
+    message += `💰 *المجموع النهائي:* ${totalPrice.toLocaleString("ar-SY")} ل.س\n`;
+    message += `━━━━━━━━━━━━━━━━━━\n`;
+    message += `🙏 شكراً لتسوقكم معنا!`;
 
-    // نفرّغ السلة فورًا بعد نجاح حفظ الطلب - قبل فتح واتساب
     clearCart();
-
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
@@ -240,18 +227,14 @@ export default function Cart() {
 
             <div className="divide-y divide-border">
               {items.map((item, index) => {
-                const unitPrice =
-                  item.selectedWeight && item.product.soldByWeight
-                    ? (item.selectedWeight / 1000) * item.product.price
-                    : item.product.price;
+                const unitPrice = item.selectedWeight && item.product.soldByWeight
+                  ? (item.selectedWeight / 1000) * item.product.price
+                  : item.product.price;
                 const itemTotal = unitPrice * item.quantity;
                 const hasFlavors = item.flavorBreakdown && item.flavorBreakdown.length > 0;
 
                 return (
-                  <div
-                    key={`${item.product.id}-${item.selectedWeight}-${index}`}
-                    className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-center"
-                  >
+                  <div key={`${item.product.id}-${item.selectedWeight}-${index}`} className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                     <div className="col-span-1 md:col-span-6 flex items-start gap-4">
                       <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0 border border-border">
                         {item.product.imageUrl ? (
@@ -270,87 +253,37 @@ export default function Cart() {
                         {hasFlavors && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {item.flavorBreakdown!.map(fb => (
-                              <div
-                                key={fb.flavor}
-                                className="flex items-center gap-1 rounded-lg border px-2 py-1"
-                                style={{ backgroundColor: "#4A3525", borderColor: "#4A3525" }}
-                              >
-                                <button
-                                  onClick={() => {
-                                    const updated = item.flavorBreakdown!.map(f =>
-                                      f.flavor === fb.flavor ? { ...f, quantity: Math.max(0, f.quantity - 1) } : f
-                                    ).filter(f => f.quantity > 0);
-                                    if (updated.length > 0) {
-                                      updateFlavorBreakdown(item.product.id, updated, item.selectedWeight);
-                                    } else {
-                                      removeItem(item.product.id, item.selectedWeight);
-                                    }
-                                  }}
-                                  className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
-                                  style={{ color: "#F5EDD8" }}
-                                >
-                                  <Minus className="w-2.5 h-2.5" />
-                                </button>
+                              <div key={fb.flavor} className="flex items-center gap-1 rounded-lg border px-2 py-1" style={{ backgroundColor: "#4A3525", borderColor: "#4A3525" }}>
+                                <button onClick={() => { const updated = item.flavorBreakdown!.map(f => f.flavor === fb.flavor ? { ...f, quantity: Math.max(0, f.quantity - 1) } : f).filter(f => f.quantity > 0); if (updated.length > 0) { updateFlavorBreakdown(item.product.id, updated, item.selectedWeight); } else { removeItem(item.product.id, item.selectedWeight); } }} className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors" style={{ color: "#F5EDD8" }}><Minus className="w-2.5 h-2.5" /></button>
                                 <span className="text-xs font-bold min-w-[14px] text-center" style={{ color: "#F5EDD8" }}>{fb.quantity}</span>
-                                <button
-                                  onClick={() => {
-                                    const updated = item.flavorBreakdown!.map(f =>
-                                      f.flavor === fb.flavor ? { ...f, quantity: f.quantity + 1 } : f
-                                    );
-                                    updateFlavorBreakdown(item.product.id, updated, item.selectedWeight);
-                                  }}
-                                  className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
-                                  style={{ color: "#F5EDD8" }}
-                                >
-                                  <Plus className="w-2.5 h-2.5" />
-                                </button>
+                                <button onClick={() => { const updated = item.flavorBreakdown!.map(f => f.flavor === fb.flavor ? { ...f, quantity: f.quantity + 1 } : f); updateFlavorBreakdown(item.product.id, updated, item.selectedWeight); }} className="w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors" style={{ color: "#F5EDD8" }}><Plus className="w-2.5 h-2.5" /></button>
                                 <span className="text-xs font-semibold mr-0.5" style={{ color: "#F5EDD8" }}>{fb.flavor}</span>
                               </div>
                             ))}
                           </div>
                         )}
-                        <p className="text-primary font-bold mt-1 md:hidden">
-                          {itemTotal.toLocaleString("ar-SY")} ل.س
-                        </p>
+                        <p className="text-primary font-bold mt-1 md:hidden">{itemTotal.toLocaleString("ar-SY")} ل.س</p>
                       </div>
                     </div>
 
                     <div className="col-span-1 md:col-span-3 flex items-center md:justify-center">
                       {hasFlavors ? (
-                        <span className="text-sm font-bold text-muted-foreground">
-                          الإجمالي: {item.quantity}
-                        </span>
+                        <span className="text-sm font-bold text-muted-foreground">الإجمالي: {item.quantity}</span>
                       ) : (
                         <div className="flex items-center bg-background border border-border rounded-lg h-10">
-                          <button
-                            onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1), item.selectedWeight)}
-                            className="w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-r-lg"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
+                          <button onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1), item.selectedWeight)} className="w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-r-lg"><Minus className="w-3 h-3" /></button>
                           <span className="w-10 text-center font-bold text-sm">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedWeight)}
-                            className="w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-l-lg"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
+                          <button onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedWeight)} className="w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-l-lg"><Plus className="w-3 h-3" /></button>
                         </div>
                       )}
                     </div>
 
                     <div className="hidden md:block col-span-2 text-left font-black text-lg text-primary">
-                      {itemTotal.toLocaleString("ar-SY")}{" "}
-                      <span className="text-xs text-muted-foreground font-normal">ل.س</span>
+                      {itemTotal.toLocaleString("ar-SY")} <span className="text-xs text-muted-foreground font-normal">ل.س</span>
                     </div>
 
                     <div className="col-span-1 text-left md:text-center absolute left-4 md:static">
-                      <button
-                        onClick={() => removeItem(item.product.id, item.selectedWeight)}
-                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <button onClick={() => removeItem(item.product.id, item.selectedWeight)} className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
                 );
@@ -359,152 +292,68 @@ export default function Cart() {
           </div>
 
           <div className="flex justify-end">
-            <Button variant="outline" onClick={clearCart} className="text-muted-foreground">
-              إفراغ السلة
-            </Button>
+            <Button variant="outline" onClick={clearCart} className="text-muted-foreground">إفراغ السلة</Button>
           </div>
         </div>
 
         {/* Order Summary + Customer Form */}
         <div className="lg:col-span-1 space-y-4">
-          {/* Customer Information Form */}
           <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
             <h2 className="text-lg font-black text-foreground mb-4 flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
               بيانات الزبون
             </h2>
-
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
-                  الاسم الكامل
-                </label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">الاسم الكامل</label>
                 <div className="relative">
                   <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="الاسم الكامل"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pr-10 h-11 rounded-xl"
-                  />
+                  <Input placeholder="الاسم الكامل" value={name} onChange={(e) => setName(e.target.value)} className="pr-10 h-11 rounded-xl" />
                 </div>
               </div>
-
               <div>
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
-                  رقم الهاتف
-                </label>
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">رقم الهاتف</label>
                 <div className="relative">
                   <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="رقم الهاتف (10 أرقام)"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="pr-10 h-11 rounded-xl font-sans"
-                    type="tel"
-                    inputMode="numeric"
-                  />
+                  <Input placeholder="رقم الهاتف (10 أرقام)" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} className="pr-10 h-11 rounded-xl font-sans" type="tel" inputMode="numeric" />
                 </div>
               </div>
-
-              {/* Location Button - only shown for home delivery */}
               {delivery === "home" && (
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
-                    موقع التوصيل
-                  </label>
-                  <button
-                    onClick={handleGetLocation}
-                    disabled={locationStatus === "loading"}
-                    className={`w-full rounded-xl border flex items-center gap-3 px-3 py-3 text-sm font-medium transition-all text-right ${
-                      locationStatus === "success"
-                        ? "border-green-400 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300"
-                        : locationStatus === "error"
-                        ? "border-red-300 bg-red-50 dark:bg-red-950/30 text-red-500"
-                        : "border-input bg-muted/40 text-muted-foreground hover:bg-muted/70"
-                    }`}
-                  >
-                    {locationStatus === "success" ? (
-                      <CheckCircle className="w-4 h-4 flex-shrink-0 text-green-500" />
-                    ) : locationStatus === "loading" ? (
-                      <Navigation className="w-4 h-4 flex-shrink-0 animate-pulse" />
-                    ) : (
-                      <MapPin className="w-4 h-4 flex-shrink-0" />
-                    )}
-                    <span className="flex-1 text-right">
-                      {locationStatus === "loading"
-                        ? "جاري تحديد الموقع..."
-                        : locationStatus === "success"
-                        ? "تم تحديد الموقع ✓"
-                        : "📍 أرسل موقعي من الخريطة"}
-                    </span>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">موقع التوصيل</label>
+                  <button onClick={handleGetLocation} disabled={locationStatus === "loading"} className={`w-full rounded-xl border flex items-center gap-3 px-3 py-3 text-sm font-medium transition-all text-right ${locationStatus === "success" ? "border-green-400 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300" : locationStatus === "error" ? "border-red-300 bg-red-50 dark:bg-red-950/30 text-red-500" : "border-input bg-muted/40 text-muted-foreground hover:bg-muted/70"}`}>
+                    {locationStatus === "success" ? <CheckCircle className="w-4 h-4 flex-shrink-0 text-green-500" /> : locationStatus === "loading" ? <Navigation className="w-4 h-4 flex-shrink-0 animate-pulse" /> : <MapPin className="w-4 h-4 flex-shrink-0" />}
+                    <span className="flex-1 text-right">{locationStatus === "loading" ? "جاري تحديد الموقع..." : locationStatus === "success" ? "تم تحديد الموقع ✓" : "📍 أرسل موقعي من الخريطة"}</span>
                   </button>
-                  {locationStatus === "error" && (
-                    <p className="text-xs text-red-500 mt-1 font-medium">{locationError}</p>
-                  )}
+                  {locationStatus === "error" && <p className="text-xs text-red-500 mt-1 font-medium">{locationError}</p>}
                   {locationStatus === "success" && locationCoords && (
-                    <a
-                      href={`https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary underline mt-1 block font-medium"
-                    >
-                      عرض موقعك على الخريطة
-                    </a>
+                    <a href={`https://maps.google.com/?q=${locationCoords.lat},${locationCoords.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline mt-1 block font-medium">عرض موقعك على الخريطة</a>
                   )}
                 </div>
               )}
-
               <label className="flex items-center gap-2.5 cursor-pointer select-none mt-1">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  className="w-4 h-4 rounded border-input accent-primary cursor-pointer"
-                />
-                <span className="text-sm font-medium text-muted-foreground">
-                  تذكرني (حفظ بياناتي للمرة القادمة)
-                </span>
+                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="w-4 h-4 rounded border-input accent-primary cursor-pointer" />
+                <span className="text-sm font-medium text-muted-foreground">تذكرني (حفظ بياناتي للمرة القادمة)</span>
               </label>
             </div>
           </div>
 
-          {/* Delivery Method */}
           <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
             <h2 className="text-lg font-black text-foreground mb-4">طريقة الاستلام:</h2>
             <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => storeStatus !== "pickup_only" && setDelivery("home")}
-                disabled={storeStatus === "pickup_only"}
-                className={`flex flex-col items-center gap-2 py-4 px-3 rounded-xl border-2 text-sm font-bold transition-all ${
-                  storeStatus === "pickup_only"
-                    ? "border-border bg-muted text-muted-foreground opacity-40 cursor-not-allowed"
-                    : delivery === "home"
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:border-primary/40"
-                }`}
-              >
+              <button onClick={() => storeStatus !== "pickup_only" && setDelivery("home")} disabled={storeStatus === "pickup_only"} className={`flex flex-col items-center gap-2 py-4 px-3 rounded-xl border-2 text-sm font-bold transition-all ${storeStatus === "pickup_only" ? "border-border bg-muted text-muted-foreground opacity-40 cursor-not-allowed" : delivery === "home" ? "border-primary bg-primary/5 text-foreground" : "border-border bg-background text-muted-foreground hover:border-primary/40"}`}>
                 <Truck className="w-6 h-6" />
                 توصيل للمنزل 🛵
               </button>
-              <button
-                onClick={() => setDelivery("pickup")}
-                className={`flex flex-col items-center gap-2 py-4 px-3 rounded-xl border-2 text-sm font-bold transition-all ${
-                  delivery === "pickup"
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:border-primary/40"
-                }`}
-              >
+              <button onClick={() => setDelivery("pickup")} className={`flex flex-col items-center gap-2 py-4 px-3 rounded-xl border-2 text-sm font-bold transition-all ${delivery === "pickup" ? "border-primary bg-primary/5 text-foreground" : "border-border bg-background text-muted-foreground hover:border-primary/40"}`}>
                 <Store className="w-6 h-6" />
                 استلام من المحل 🏪
               </button>
             </div>
           </div>
 
-          {/* Order Summary */}
           <div className="bg-card rounded-2xl shadow-md border border-border p-6 md:p-8 sticky top-28">
             <h2 className="text-2xl font-black border-b border-border pb-4 mb-6">ملخص الطلب</h2>
-
             <div className="space-y-4 mb-6 text-lg">
               <div className="flex justify-between font-medium">
                 <span className="text-muted-foreground">عدد العناصر</span>
@@ -512,10 +361,7 @@ export default function Cart() {
               </div>
               <div className="flex justify-between font-black text-xl text-primary pt-4 border-t border-border">
                 <span>المجموع الكلي</span>
-                <span>
-                  {totalPrice.toLocaleString("ar-SY")}{" "}
-                  <span className="text-sm font-medium text-muted-foreground">ل.س</span>
-                </span>
+                <span>{totalPrice.toLocaleString("ar-SY")} <span className="text-sm font-medium text-muted-foreground">ل.س</span></span>
               </div>
             </div>
 
@@ -531,29 +377,20 @@ export default function Cart() {
                   يجب تسجيل الدخول أولاً لإتمام الطلب
                 </div>
                 <Button size="lg" className="w-full h-14 text-lg font-bold gap-2" asChild>
-                  <Link href="/login">
-                    <LogIn className="w-5 h-5" />
-                    تسجيل الدخول
-                  </Link>
+                  <Link href="/login"><LogIn className="w-5 h-5" />تسجيل الدخول</Link>
                 </Button>
               </div>
             ) : (
               <>
                 {validationError && (
                   <div ref={errorRef} className="bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm font-semibold mb-3 border border-red-200 dark:border-red-900/50 flex items-center gap-2">
-                    <XCircle className="w-4 h-4 flex-shrink-0" />
-                    {validationError}
+                    <XCircle className="w-4 h-4 flex-shrink-0" />{validationError}
                   </div>
                 )}
                 <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-6 border border-green-200 dark:border-green-900/50">
                   سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد وقت التوصيل.
                 </div>
-                <Button
-                  size="lg"
-                  disabled={storeStatus === "closed" || isSubmitting}
-                  className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleWhatsAppCheckout}
-                >
+                <Button size="lg" disabled={storeStatus === "closed" || isSubmitting} className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleWhatsAppCheckout}>
                   {isSubmitting ? "جاري إرسال الطلب..." : "اطلب عبر واتساب"}
                 </Button>
               </>
