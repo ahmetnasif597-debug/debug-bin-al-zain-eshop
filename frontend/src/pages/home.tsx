@@ -11,17 +11,11 @@ export default function Home() {
   const { data: featuredProducts, isLoading: loadingFeatured } = useGetFeaturedProducts();
   const { data: categories, isLoading: loadingCategories } = useListCategories();
 
-  const [showBanner, setShowBanner] = useState(false);
-
-  useEffect(() => {
-    const dismissed = localStorage.getItem("apk-downloaded");
-    if (!dismissed) setShowBanner(true);
-  }, []);
+  const [showBanner, setShowBanner] = useState(true);
 
   const handleDownload = () => {
-    localStorage.setItem("apk-downloaded", "true");
     setShowBanner(false);
-    window.location.href = "/متجر الزين.apk";
+    const a = document.createElement("a"); a.href = "/zain-store.apk"; a.download = "zain-store.apk"; a.click();
   };
 
   const handleDismiss = () => {
