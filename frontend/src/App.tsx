@@ -32,6 +32,7 @@ import AdminNotifications from "@/pages/admin/notifications";
 import AdminSettings from "@/pages/admin/settings";
 import LoginPage from "@/pages/login";
 import ProfilePage from "@/pages/profile";
+import OrdersPage from "@/pages/orders";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -146,6 +147,9 @@ function Router() {
       </Route>
       <Route path="/profile">
         <PublicLayout><ProfilePage /></PublicLayout>
+      </Route>
+      <Route path="/orders">
+        <PublicLayout><OrdersPage /></PublicLayout>
       </Route>
       <Route>
         <PublicLayout><NotFound /></PublicLayout>
