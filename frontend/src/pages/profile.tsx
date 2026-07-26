@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { UserCircle2, Package, Settings, LogOut, ChevronDown, ChevronUp, CheckCircle2, Clock, XCircle, Truck } from "lucide-react";
+import { UserCircle2, Package, Settings, LogOut, ChevronDown, ChevronUp, CheckCircle2, Clock, XCircle, Truck, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -138,6 +138,13 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const handleApkDownload = () => {
+    const a = document.createElement("a");
+    a.href = encodeURI("/متجر الزين.apk");
+    a.download = "متجر الزين.apk";
+    a.click();
+  };
+
   if (loadingCustomer && !authError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -253,6 +260,18 @@ export default function ProfilePage() {
             </p>
             <p className="text-sm text-muted-foreground font-medium mt-1">طلبات مكتملة</p>
           </div>
+        </div>
+
+        {/* APK Download Button */}
+        <div className="relative z-10 mt-4 md:hidden">
+          <button
+            onClick={handleApkDownload}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm"
+            style={{ backgroundColor: "#3b1f0e", color: "#e8d5b0" }}
+          >
+            <Download className="w-4 h-4" />
+            تحميل تطبيق متجر الزين
+          </button>
         </div>
       </div>
 
