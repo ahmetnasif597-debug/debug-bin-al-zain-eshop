@@ -8,6 +8,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 const STORAGE_KEY = "binalzain_customer_info";
+const DELIVERY_FEE = 50;
+const FREE_DELIVERY_THRESHOLD = 500;
 
 function loadSaved(): { name: string; phone: string; remember: boolean } {
   try {
@@ -48,6 +50,10 @@ export default function Cart() {
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string>("");
+
+  // حساب أجرة التوصيل
+  const deliveryFee = delivery === "home" && totalPrice < FREE_DELIVERY_THRESHOLD ? DELIVERY_FEE : 0;
+  const grandTotal = totalPrice + deliveryFee;
 
   useEffect(() => {
     if (storeStatus === "pickup_only") setDelivery("pickup");
@@ -114,7 +120,7 @@ export default function Cart() {
           customerName: name || null,
           customerPhone: phone || null,
           notes: `الموقع: ${locationText} | طريقة الاستلام: ${delivery === "home" ? "توصيل للمنزل" : "استلام من المحل"}`,
-          totalPrice,
+          totalPrice: grandTotal,
           items: items.map((item) => {
             const unitPrice = item.selectedWeight && item.product.soldByWeight
               ? (item.selectedWeight / 1000) * item.product.price
@@ -149,7 +155,6 @@ export default function Cart() {
 
     setIsSubmitting(false);
 
-    // بناء رسالة الواتساب مع رقم الفاتورة والتاريخ والوقت
     const now = new Date();
     const invoiceNumber = savedOrderId ? `BZ-${1000 + savedOrderId}` : `BZ-${Date.now().toString().slice(-4)}`;
     const dateStr = now.toLocaleDateString("ar-SY", { year: "numeric", month: "2-digit", day: "2-digit" });
@@ -160,11 +165,15 @@ export default function Cart() {
       const weightText = item.selectedWeight
         ? item.selectedWeight >= 1000 ? `${item.selectedWeight / 1000} كيلو` : `${item.selectedWeight} غ`
         : null;
+      const unitPrice = item.selectedWeight && item.product.soldByWeight
+        ? (item.selectedWeight / 1000) * item.product.price
+        : item.product.price;
+      const lineTotal = unitPrice * item.quantity;
       if (item.flavorBreakdown && item.flavorBreakdown.length > 0) {
         const flavorText = item.flavorBreakdown.map(f => `${f.flavor} ×${f.quantity}`).join("، ");
-        orderItems += `• ${item.product.nameAr}${weightText ? ` - ${weightText}` : ""} | النكهات: ${flavorText}\n`;
+        orderItems += `• ${item.product.nameAr}${weightText ? ` - ${weightText}` : ""} | النكهات: ${flavorText} — ${lineTotal.toLocaleString("ar-SY")} ل.س\n`;
       } else {
-        orderItems += `• ${item.product.nameAr}${weightText ? ` - ${weightText}` : ""} (الكمية: ${item.quantity})\n`;
+        orderItems += `• ${item.product.nameAr}${weightText ? ` - ${weightText}` : ""} (الكمية: ${item.quantity}) — ${lineTotal.toLocaleString("ar-SY")} ل.س\n`;
       }
     });
 
@@ -184,8 +193,13 @@ export default function Cart() {
     message += `\n🛒 *تفاصيل الطلب:*\n`;
     message += orderItems;
     message += `\n📦 *طريقة الاستلام:* ${deliveryMethod}\n`;
+    if (delivery === "home") {
+      message += deliveryFee > 0
+        ? `🚚 *أجرة التوصيل:* ${DELIVERY_FEE} ل.س\n`
+        : `🚚 *التوصيل:* مجاني ✅\n`;
+    }
     message += `━━━━━━━━━━━━━━━━━━\n`;
-    message += `💰 *المجموع النهائي:* ${totalPrice.toLocaleString("ar-SY")} ل.س\n`;
+    message += `💰 *المجموع النهائي:* ${grandTotal.toLocaleString("ar-SY")} ل.س\n`;
     message += `━━━━━━━━━━━━━━━━━━\n`;
     message += `🙏 شكراً لتسوقكم معنا!`;
 
@@ -200,9 +214,7 @@ export default function Cart() {
           <ShoppingBag className="w-10 h-10" />
         </div>
         <h2 className="text-3xl font-black text-foreground mb-4">سلة المشتريات فارغة</h2>
-        <p className="text-muted-foreground text-lg mb-8 max-w-md">
-          لم تقم بإضافة أي منتجات إلى سلة المشتريات بعد. اكتشف منتجاتنا المميزة.
-        </p>
+        <p className="text-muted-foreground text-lg mb-8 max-w-md">لم تقم بإضافة أي منتجات إلى سلة المشتريات بعد. اكتشف منتجاتنا المميزة.</p>
         <Button size="lg" className="font-bold px-8 text-lg" asChild>
           <Link href="/products">تصفح المنتجات</Link>
         </Button>
@@ -215,7 +227,6 @@ export default function Cart() {
       <h1 className="text-4xl font-black text-primary mb-8">سلة المشتريات</h1>
 
       <div className="grid lg:grid-cols-3 gap-12">
-        {/* Items */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="hidden md:grid grid-cols-12 gap-4 p-4 bg-muted/50 border-b border-border font-bold text-muted-foreground text-sm">
@@ -296,7 +307,6 @@ export default function Cart() {
           </div>
         </div>
 
-        {/* Order Summary + Customer Form */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
             <h2 className="text-lg font-black text-foreground mb-4 flex items-center gap-2">
@@ -359,9 +369,28 @@ export default function Cart() {
                 <span className="text-muted-foreground">عدد العناصر</span>
                 <span>{items.reduce((sum, i) => sum + i.quantity, 0)}</span>
               </div>
+              <div className="flex justify-between font-medium">
+                <span className="text-muted-foreground">المجموع</span>
+                <span>{totalPrice.toLocaleString("ar-SY")} ل.س</span>
+              </div>
+              {delivery === "home" && (
+                <div className="flex justify-between font-medium">
+                  <span className="text-muted-foreground">أجرة التوصيل</span>
+                  {deliveryFee > 0 ? (
+                    <span className="text-destructive font-bold">{DELIVERY_FEE} ل.س</span>
+                  ) : (
+                    <span className="text-green-600 font-bold">مجاني ✅</span>
+                  )}
+                </div>
+              )}
+              {delivery === "home" && totalPrice < FREE_DELIVERY_THRESHOLD && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                  أضف {(FREE_DELIVERY_THRESHOLD - totalPrice).toLocaleString("ar-SY")} ل.س للحصول على توصيل مجاني
+                </p>
+              )}
               <div className="flex justify-between font-black text-xl text-primary pt-4 border-t border-border">
                 <span>المجموع الكلي</span>
-                <span>{totalPrice.toLocaleString("ar-SY")} <span className="text-sm font-medium text-muted-foreground">ل.س</span></span>
+                <span>{grandTotal.toLocaleString("ar-SY")} <span className="text-sm font-medium text-muted-foreground">ل.س</span></span>
               </div>
             </div>
 
