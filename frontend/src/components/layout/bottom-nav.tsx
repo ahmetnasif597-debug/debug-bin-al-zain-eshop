@@ -9,7 +9,7 @@ export function BottomNav() {
   const tabs = [
     { label: "الرئيسية", href: "/", icon: Home },
     { label: "المنتجات", href: "/products", icon: ShoppingBag },
-    { label: "طلباتي", href: customer ? "/profile" : "/login", icon: Package },
+    { label: "طلباتي", href: customer ? "/orders" : "/login", icon: Package },
     { label: "حسابي", href: customer ? "/profile" : "/login", icon: UserCircle2 },
   ];
 
