@@ -100,6 +100,10 @@ export default function Cart() {
       showError("الرجاء إدخال رقم الهاتف");
       return;
     }
+    if (!/^\d{10}$/.test(phone.trim())) {
+      showError("رقم الهاتف يجب أن يتكون من 10 أرقام فقط (بدون حروف أو رموز)");
+      return;
+    }
     if (delivery === "home" && locationStatus !== "success") {
       showError("الرجاء إرسال موقعك من الخريطة");
       return;
@@ -393,11 +397,12 @@ export default function Cart() {
                 <div className="relative">
                   <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="رقم الهاتف"
+                    placeholder="رقم الهاتف (10 أرقام)"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     className="pr-10 h-11 rounded-xl font-sans"
                     type="tel"
+                    inputMode="numeric"
                   />
                 </div>
               </div>
