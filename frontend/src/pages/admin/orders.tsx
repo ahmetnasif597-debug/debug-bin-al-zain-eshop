@@ -1,178 +1,370 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { UserCircle2, Package, ChevronDown, ChevronUp, CheckCircle2, Clock, XCircle, Truck } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { 
+  useListOrders, 
+  useUpdateOrderStatus,
+  useListProducts,
+  getListOrdersQueryKey,
+  getGetAdminStatsQueryKey
+} from "@/lib/api-client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useGetAuthMe, useGetMyOrders } from "@/lib/api-client";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, ChevronDown, ChevronUp, Phone, User, Trash2 } from "lucide-react";
 
-const STATUS_MAP: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending: {
-    label: "قيد الانتظار",
-    color: "text-amber-600 bg-amber-50 border-amber-200",
-    icon: <Clock className="w-3.5 h-3.5" />,
-  },
-  confirmed: {
-    label: "جاري التوصيل",
-    color: "text-blue-600 bg-blue-50 border-blue-200",
-    icon: <Truck className="w-3.5 h-3.5" />,
-  },
-  completed: {
-    label: "مكتمل",
-    color: "text-green-600 bg-green-50 border-green-200",
-    icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-  },
-  cancelled: {
-    label: "ملغى",
-    color: "text-red-600 bg-red-50 border-red-200",
-    icon: <XCircle className="w-3.5 h-3.5" />,
-  },
+const STATUS_MAP = {
+  pending: { label: "معلق", color: "bg-yellow-500 hover:bg-yellow-600 text-white" },
+  confirmed: { label: "جاري التوصيل", color: "bg-blue-500 hover:bg-blue-600 text-white" },
+  completed: { label: "مكتمل", color: "bg-green-500 hover:bg-green-600 text-white" },
+  cancelled: { label: "ملغي", color: "bg-red-500 hover:bg-red-600 text-white" },
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ar-SY", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+export default function AdminOrders() {
+  const [filter, setFilter] = useState<string>("all");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [orderPendingDelete, setOrderPendingDelete] = useState<number | null>(null);
+  const [bulkDeleteBeforeDate, setBulkDeleteBeforeDate] = useState<string>("");
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const { data: orders, isLoading } = useListOrders(
+    filter !== "all" ? { status: filter as "pending" | "confirmed" | "completed" | "cancelled" } : undefined
+  );
+
+  // نجيب المنتجات مرة وحدة لنطلع منها صورة كل منتج (order.items ما فيها صورة أصلاً)
+  const { data: products } = useListProducts();
+  const productImageMap = useMemo(
+    () => new Map((products ?? []).map((p: any) => [p.id, p.imageUrl])),
+    [products]
+  );
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const updateStatusMutation = useUpdateOrderStatus({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        toast({ title: "تم تحديث حالة الطلب" });
+      }
+    }
   });
-}
 
-function formatWeight(w: number | null | undefined) {
-  if (!w) return null;
-  return w >= 1000 ? `${w / 1000} كيلو` : `${w} غ`;
-}
+  const handleStatusChange = (orderId: number, status: string) => {
+    updateStatusMutation.mutate({ id: orderId, data: { status: status as "pending" | "confirmed" | "completed" | "cancelled" } });
+  };
 
-function OrderCard({ order }: { order: { id: number; status: string; createdAt: string; totalPrice: number; items: { productId: number; nameAr: string; price: number; quantity: number; selectedWeight?: number | null; lineTotal?: number | null }[]; notes?: string | null } }) {
-  const [expanded, setExpanded] = useState(false);
-  const status = STATUS_MAP[order.status] ?? STATUS_MAP.pending;
+  const refreshOrders = () => {
+    queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+  };
+
+  const handleDeleteOrder = async (orderId: number) => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "تعذر حذف الطلب",
+          description: err?.error ?? `HTTP ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "تم حذف الطلب" });
+      refreshOrders();
+    } catch (err) {
+      toast({ title: "تعذر الاتصال بالسيرفر", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setOrderPendingDelete(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!bulkDeleteBeforeDate) return;
+    setIsDeleting(true);
+    try {
+      const beforeIso = new Date(bulkDeleteBeforeDate).toISOString();
+      const res = await fetch(`/api/orders?before=${encodeURIComponent(beforeIso)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "تعذر حذف الطلبات",
+          description: err?.error ?? `HTTP ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const data = await res.json();
+      toast({ title: `تم حذف ${data.deletedCount ?? 0} طلب` });
+      refreshOrders();
+      setBulkDeleteBeforeDate("");
+    } catch (err) {
+      toast({ title: "تعذر الاتصال بالسيرفر", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setBulkDeleteConfirmOpen(false);
+    }
+  };
 
   return (
-    <div className="bg-background border border-border rounded-2xl overflow-hidden transition-shadow hover:shadow-md">
-      <button
-        className="w-full p-5 flex items-center justify-between gap-4 text-right"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Package className="w-6 h-6 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-black text-foreground text-base">طلب #{order.id}</p>
-            <p className="text-sm text-muted-foreground font-medium mt-0.5">{formatDate(order.createdAt)}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${status.color}`}>
-            {status.icon}
-            {status.label}
-          </span>
-          <span className="font-black text-primary text-base whitespace-nowrap">
-            {order.totalPrice.toLocaleString("ar-SY")} <span className="text-xs font-normal text-muted-foreground">ل.س</span>
-          </span>
-          {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-        </div>
-      </button>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-black text-foreground">إدارة الطلبات</h1>
 
-      {expanded && (
-        <div className="border-t border-border px-5 pb-5 pt-4 space-y-3">
-          <h4 className="text-sm font-bold text-muted-foreground mb-3">المنتجات المطلوبة</h4>
-          <div className="space-y-2">
-            {order.items.map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center text-xs font-bold text-primary">
-                    {item.quantity}×
-                  </span>
-                  <div>
-                    <p className="font-semibold text-foreground text-sm">{item.nameAr}</p>
-                    {item.selectedWeight && (
-                      <p className="text-xs text-muted-foreground mt-0.5">الوزن: {formatWeight(item.selectedWeight)}</p>
-                    )}
-                  </div>
-                </div>
-                <span className="font-bold text-sm text-primary">
-                  {(item.lineTotal ?? item.price * item.quantity).toLocaleString("ar-SY")} ل.س
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between items-center pt-2 border-t border-border font-black text-base">
-            <span className="text-muted-foreground">المجموع الكلي</span>
-            <span className="text-primary">{order.totalPrice.toLocaleString("ar-SY")} ل.س</span>
-          </div>
-          {order.notes && (
-            <p className="text-sm text-muted-foreground bg-muted/50 rounded-xl px-4 py-2 mt-2">
-              <span className="font-bold">ملاحظات:</span> {order.notes}
-            </p>
-          )}
+      {/* حذف جماعي حسب التاريخ */}
+      <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1 block">
+            حذف كل الطلبات قبل تاريخ
+          </label>
+          <Input
+            type="date"
+            value={bulkDeleteBeforeDate}
+            onChange={(e) => setBulkDeleteBeforeDate(e.target.value)}
+            className="h-10"
+          />
         </div>
-      )}
-    </div>
-  );
-}
-
-export default function OrdersPage() {
-  const [, setLocation] = useLocation();
-  const { data: customer, isLoading: loadingCustomer, isError: authError } = useGetAuthMe();
-  const { data: orders, isLoading: loadingOrders } = useGetMyOrders();
-
-  if (loadingCustomer && !authError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground font-medium">جارٍ التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!customer || authError) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4 text-center">
-        <UserCircle2 className="w-20 h-20 text-primary/30" />
-        <div>
-          <h2 className="text-2xl font-black text-foreground mb-2">يجب تسجيل الدخول</h2>
-          <p className="text-muted-foreground font-medium">سجّل دخولك لعرض سجل طلباتك</p>
-        </div>
-        <Button size="lg" className="font-bold px-10" onClick={() => setLocation("/login")}>
-          تسجيل الدخول
+        <Button
+          variant="destructive"
+          disabled={!bulkDeleteBeforeDate || isDeleting}
+          onClick={() => setBulkDeleteConfirmOpen(true)}
+          className="gap-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          حذف الطلبات القديمة
         </Button>
       </div>
-    );
-  }
 
-  return (
-    <div className="container mx-auto px-4 py-12 min-h-screen max-w-4xl">
-      <h1 className="text-3xl font-black text-foreground mb-8">طلباتي</h1>
+      <Tabs defaultValue="all" onValueChange={setFilter}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">الكل</TabsTrigger>
+          <TabsTrigger value="pending">معلق</TabsTrigger>
+          <TabsTrigger value="confirmed">جاري التوصيل</TabsTrigger>
+          <TabsTrigger value="completed">مكتمل</TabsTrigger>
+          <TabsTrigger value="cancelled">ملغي</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-      {loadingOrders ? (
-        <div className="text-center py-16">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground font-medium">جارٍ تحميل الطلبات...</p>
-        </div>
-      ) : !orders || orders.length === 0 ? (
-        <div className="bg-card rounded-3xl border border-border shadow-md p-12 text-center">
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-            <Package className="w-10 h-10 text-muted-foreground" />
-          </div>
-          <h3 className="text-2xl font-black text-foreground mb-3">ما طلبتي شي بعد!</h3>
-          <p className="text-muted-foreground font-medium mb-8 max-w-sm mx-auto">
-            اكتشف منتجاتنا المميزة من بن وقهوة ومكسرات وأكثر
-          </p>
-          <Button size="lg" className="font-bold px-10" onClick={() => setLocation("/products")}>
-            تصفح المنتجات
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-black text-foreground">سجل طلباتك</h2>
-            <span className="text-sm text-muted-foreground font-medium">{orders.length} طلب</span>
-          </div>
-          {orders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))}
-        </div>
-      )}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10"></TableHead>
+              <TableHead className="text-right">رقم الطلب</TableHead>
+              <TableHead className="text-right">التاريخ</TableHead>
+              <TableHead className="text-right">العميل</TableHead>
+              <TableHead className="text-right">المجموع</TableHead>
+              <TableHead className="text-right">الحالة</TableHead>
+              <TableHead className="text-right">تحديث الحالة</TableHead>
+              <TableHead className="w-10"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+                </TableCell>
+              </TableRow>
+            ) : orders?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  لا توجد طلبات
+                </TableCell>
+              </TableRow>
+            ) : orders?.map(order => (
+              <React.Fragment key={order.id}>
+                <TableRow
+                  className={`cursor-pointer ${expandedId === order.id ? 'bg-muted/50' : ''}`}
+                  onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}
+                >
+                  <TableCell>
+                    {expandedId === order.id
+                      ? <ChevronUp className="w-5 h-5" />
+                      : <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    }
+                  </TableCell>
+                  <TableCell className="font-bold">#{order.id}</TableCell>
+                  <TableCell>{format(new Date(order.createdAt), 'yyyy/MM/dd HH:mm')}</TableCell>
+                  <TableCell>{order.customerName ?? "—"}</TableCell>
+                  <TableCell className="font-bold text-primary">
+                    {order.totalPrice.toLocaleString('ar-SY')} ل.س
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={STATUS_MAP[order.status as keyof typeof STATUS_MAP]?.color}>
+                      {STATUS_MAP[order.status as keyof typeof STATUS_MAP]?.label}
+                    </Badge>
+                  </TableCell>
+                  <TableCell onClick={e => e.stopPropagation()}>
+                    <Select 
+                      value={order.status} 
+                      onValueChange={v => handleStatusChange(order.id, v)}
+                      disabled={updateStatusMutation.isPending}
+                    >
+                      <SelectTrigger className="w-[140px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">معلق</SelectItem>
+                        <SelectItem value="confirmed">جاري التوصيل</SelectItem>
+                        <SelectItem value="completed">مكتمل</SelectItem>
+                        <SelectItem value="cancelled">ملغي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setOrderPendingDelete(order.id)}
+                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      title="حذف الطلب"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </TableCell>
+                </TableRow>
+                {expandedId === order.id && (
+                  <TableRow className="bg-muted/20">
+                    <TableCell colSpan={8} className="p-0">
+                      <div className="p-6 grid md:grid-cols-2 gap-8 border-b border-border">
+                        <div>
+                          <h4 className="font-bold mb-4 flex items-center gap-2 text-primary">
+                            <User className="w-4 h-4" /> معلومات العميل
+                          </h4>
+                          <div className="space-y-3 text-sm">
+                            <div className="flex items-center gap-3">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                              <span>{order.customerName ?? "غير محدد"}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              <span dir="ltr">{order.customerPhone ?? "غير محدد"}</span>
+                            </div>
+                            {order.notes && (
+                              <div className="mt-4 p-3 bg-white/50 rounded-md border text-muted-foreground">
+                                <strong>ملاحظات:</strong> {order.notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-bold mb-4">تفاصيل الطلب</h4>
+                          <div className="space-y-2">
+                            {order.items?.map((item, idx) => {
+                              const imageUrl = productImageMap.get(item.productId);
+                              return (
+                                <div key={idx} className="flex justify-between items-center bg-card p-3 rounded border border-border">
+                                  <div className="flex items-center gap-3">
+                                    {imageUrl ? (
+                                      <img
+                                        src={imageUrl}
+                                        alt={item.nameAr}
+                                        className="w-12 h-12 rounded-md object-cover border border-border flex-shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                                        —
+                                      </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                      <span className="font-bold">{item.nameAr}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {item.quantity} ×{" "}
+                                        {item.selectedWeight
+                                          ? `${item.selectedWeight >= 1000 ? item.selectedWeight / 1000 + " كيلو" : item.selectedWeight + " غ"}`
+                                          : item.price.toLocaleString('ar-SY') + " ل.س"
+                                        }
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <span className="font-bold">
+                                    {(item.lineTotal ?? 0).toLocaleString('ar-SY')} ل.س
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-4 pt-3 border-t border-border flex justify-between font-bold text-primary">
+                            <span>المجموع</span>
+                            <span>{order.totalPrice.toLocaleString('ar-SY')} ل.س</span>
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* تأكيد حذف طلب واحد */}
+      <AlertDialog open={orderPendingDelete !== null} onOpenChange={(open) => !open && setOrderPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الطلب #{orderPendingDelete}</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف هذا الطلب؟ هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={() => orderPendingDelete !== null && handleDeleteOrder(orderPendingDelete)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? "جاري الحذف..." : "حذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* تأكيد الحذف الجماعي */}
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الطلبات القديمة</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف كل الطلبات المسجلة قبل تاريخ {bulkDeleteBeforeDate} نهائيًا. هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={handleBulkDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? "جاري الحذف..." : "تأكيد الحذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
