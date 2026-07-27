@@ -48,11 +48,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Product Carousel */}
-      <section className="py-10 md:py-14">
+      {/* Featured Product Banner */}
+      <section className="py-6 md:py-8">
         <div className="container mx-auto px-4">
           {loadingFeatured ? (
-            <Skeleton className="w-full h-[420px] md:h-[380px] rounded-3xl" />
+            <Skeleton className="w-full h-40 sm:h-48 md:h-56 rounded-2xl" />
           ) : featuredProducts && featuredProducts.length > 0 ? (
             <FeaturedCarousel
               products={featuredProducts.slice(0, 5).map((p) => ({
@@ -60,7 +60,6 @@ export default function Home() {
                 nameAr: p.nameAr,
                 tagline: (p as any).description ?? undefined,
                 imageUrl: p.imageUrl,
-                price: p.price,
                 onCtaClick: () => setLocation(`/products/${p.id}`),
               }))}
             />
