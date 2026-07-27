@@ -12,6 +12,7 @@ import settingsRouter from "./settings";
 import reportsRouter from "./reports";
 import bulkImportRouter from "./bulk-import";
 import pushRouter from "./push";
+import bannersRouter from "./banners";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use(storageRouter);
 router.use(settingsRouter);
 router.use(reportsRouter);
 router.use(pushRouter);
+router.use(bannersRouter);
 
 export default router;
