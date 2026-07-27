@@ -1,7 +1,8 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useGetFeaturedProducts, useListCategories } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
+import FeaturedCarousel from "@/components/FeaturedCarousel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
@@ -9,6 +10,7 @@ import { ArrowLeft } from "lucide-react";
 export default function Home() {
   const { data: featuredProducts, isLoading: loadingFeatured } = useGetFeaturedProducts();
   const { data: categories, isLoading: loadingCategories } = useListCategories();
+  const [, setLocation] = useLocation();
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -43,6 +45,26 @@ export default function Home() {
               </Button>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Featured Product Carousel */}
+      <section className="py-10 md:py-14">
+        <div className="container mx-auto px-4">
+          {loadingFeatured ? (
+            <Skeleton className="w-full h-[420px] md:h-[380px] rounded-3xl" />
+          ) : featuredProducts && featuredProducts.length > 0 ? (
+            <FeaturedCarousel
+              products={featuredProducts.slice(0, 5).map((p) => ({
+                id: p.id,
+                nameAr: p.nameAr,
+                tagline: (p as any).description ?? undefined,
+                imageUrl: p.imageUrl,
+                price: p.price,
+                onCtaClick: () => setLocation(`/products/${p.id}`),
+              }))}
+            />
+          ) : null}
         </div>
       </section>
 
