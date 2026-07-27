@@ -25,6 +25,7 @@ import NotFound from "@/pages/not-found";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminProducts from "@/pages/admin/products";
 import AdminCategories from "@/pages/admin/categories";
+import AdminBanners from "@/pages/admin/banners";
 import AdminOrders from "@/pages/admin/orders";
 import AdminReports from "@/pages/admin/reports";
 import AdminCustomers from "@/pages/admin/customers";
@@ -84,6 +85,13 @@ function Router() {
         <AdminGuard>
           <AdminLayout>
             <AdminCategories />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/banners">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminBanners />
           </AdminLayout>
         </AdminGuard>
       </Route>
