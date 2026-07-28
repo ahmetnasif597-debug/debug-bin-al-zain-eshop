@@ -30,6 +30,12 @@ async function uploadImageToStorage(file: File): Promise<string> {
   return url;
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string") return err;
+  return "حدث خطأ غير متوقع، حاول مرة أخرى";
+}
+
 export default function AdminBanners() {
   const { data: banners, isLoading } = useListBanners();
   const queryClient = useQueryClient();
@@ -49,8 +55,8 @@ export default function AdminBanners() {
       setFormData(prev => ({ ...prev, imageUrl: servingUrl }));
       setUploadPreview(servingUrl);
       toast({ title: "تم رفع الصورة بنجاح" });
-    } catch {
-      toast({ title: "فشل رفع الصورة", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "فشل رفع الصورة", description: getErrorMessage(err), variant: "destructive" });
       setUploadPreview("");
     } finally {
       setIsUploading(false);
@@ -63,7 +69,10 @@ export default function AdminBanners() {
         queryClient.invalidateQueries({ queryKey: getListBannersQueryKey() });
         toast({ title: "تم إضافة البانر بنجاح" });
         setIsOpen(false);
-      }
+      },
+      onError: (err) => {
+        toast({ title: "فشل في إضافة البانر", description: getErrorMessage(err), variant: "destructive" });
+      },
     }
   });
 
@@ -73,7 +82,10 @@ export default function AdminBanners() {
         queryClient.invalidateQueries({ queryKey: getListBannersQueryKey() });
         toast({ title: "تم تعديل البانر بنجاح" });
         setIsOpen(false);
-      }
+      },
+      onError: (err) => {
+        toast({ title: "فشل في تعديل البانر", description: getErrorMessage(err), variant: "destructive" });
+      },
     }
   });
 
@@ -82,7 +94,10 @@ export default function AdminBanners() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListBannersQueryKey() });
         toast({ title: "تم حذف البانر" });
-      }
+      },
+      onError: (err) => {
+        toast({ title: "فشل في حذف البانر", description: getErrorMessage(err), variant: "destructive" });
+      },
     }
   });
 
@@ -113,6 +128,20 @@ export default function AdminBanners() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.title.trim()) {
+      toast({ title: "الرجاء إدخال عنوان البانر", variant: "destructive" });
+      return;
+    }
+    if (!formData.link.trim()) {
+      toast({ title: "الرجاء إدخال رابط البانر", variant: "destructive" });
+      return;
+    }
+    if (!formData.imageUrl.trim()) {
+      toast({ title: "الرجاء رفع صورة للبانر", variant: "destructive" });
+      return;
+    }
+
     if (editingId) {
       updateMutation.mutate({ id: editingId, data: formData });
     } else {
@@ -221,6 +250,7 @@ export default function AdminBanners() {
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>إلغاء</Button>
               <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || isUploading}>
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin ml-2" />}
                 {editingId ? "تعديل" : "إضافة"}
               </Button>
             </div>
