@@ -16,6 +16,7 @@ export interface PushPayload {
   body: string;
   url?: string;   // الصفحة التي تُفتح عند الضغط على الإشعار
   tag?: string;   // يمنع تكرار الإشعار (نفس الـ tag يُستبدل بدل التراكم)
+  type?: string;  // "admin_order" → اهتزاز أقوى + requireInteraction في الـ SW
 }
 
 export interface PushSubscriptionRow {

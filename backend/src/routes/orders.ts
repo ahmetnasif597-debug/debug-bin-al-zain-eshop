@@ -125,6 +125,7 @@ router.post("/orders", async (req: any, res: any) => {
           body: `${body.customerName ?? "زبون"} — ${Number(body.totalPrice).toFixed(2)} ر.س`,
           url: "/admin/orders",
           tag: `new-order-${order.id}`,
+          type: "admin_order",
         }),
       )
       .catch((err: unknown) => logger.warn({ err }, "فشل إرسال Push للأدمن عند طلب جديد"));
