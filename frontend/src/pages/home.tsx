@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { useGetFeaturedProducts, useListCategories } from "@/lib/api-client";
+import { useGetFeaturedProducts, useListCategories, useListBanners } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,17 @@ import { ArrowLeft } from "lucide-react";
 export default function Home() {
   const { data: featuredProducts, isLoading: loadingFeatured } = useGetFeaturedProducts();
   const { data: categories, isLoading: loadingCategories } = useListCategories();
+  const { data: banners, isLoading: loadingBanners } = useListBanners();
   const [, setLocation] = useLocation();
+
+  const handleBannerClick = (link: string) => {
+    if (!link) return;
+    if (link.startsWith("http://") || link.startsWith("https://")) {
+      window.location.href = link;
+    } else {
+      setLocation(link);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -48,19 +58,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Product Banner */}
+      {/* Admin-managed Banners */}
       <section className="py-6 md:py-8">
         <div className="container mx-auto px-4">
-          {loadingFeatured ? (
+          {loadingBanners ? (
             <Skeleton className="w-full h-40 sm:h-48 md:h-56 rounded-2xl" />
-          ) : featuredProducts && featuredProducts.length > 0 ? (
+          ) : banners && banners.length > 0 ? (
             <FeaturedCarousel
-              products={featuredProducts.slice(0, 5).map((p) => ({
-                id: p.id,
-                nameAr: p.nameAr,
-                tagline: (p as any).description ?? undefined,
-                imageUrl: p.imageUrl,
-                onCtaClick: () => setLocation(`/products/${p.id}`),
+              products={banners.map((b) => ({
+                id: b.id,
+                nameAr: b.title,
+                imageUrl: b.imageUrl,
+                onCtaClick: () => handleBannerClick(b.link),
               }))}
             />
           ) : null}
