@@ -1,5 +1,3 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-
 export interface FeaturedProduct {
   id: string | number;
   nameAr: string;
@@ -10,61 +8,25 @@ export interface FeaturedProduct {
 
 interface FeaturedCarouselProps {
   products: FeaturedProduct[];
-  autoPlayMs?: number; // مدة كل شريحة بالميلي ثانية، افتراضي 4500
 }
 
-export default function FeaturedCarousel({ products, autoPlayMs = 4500 }: FeaturedCarouselProps) {
-  const [active, setActive] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const touchStartX = useRef<number | null>(null);
-
-  const goTo = useCallback(
-    (index: number) => {
-      setActive((index + products.length) % products.length);
-    },
-    [products.length]
-  );
-
-  useEffect(() => {
-    if (isPaused || products.length <= 1) return;
-    const timer = setInterval(() => {
-      setActive((prev) => (prev + 1) % products.length);
-    }, autoPlayMs);
-    return () => clearInterval(timer);
-  }, [isPaused, autoPlayMs, products.length]);
-
+export default function FeaturedCarousel({ products }: FeaturedCarouselProps) {
   if (!products || products.length === 0) return null;
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(delta) > 40) {
-      if (delta > 0) goTo(active + 1);
-      else goTo(active - 1);
-    }
-    touchStartX.current = null;
-  };
 
   return (
     <div
-      className="relative w-full h-40 sm:h-48 md:h-56 overflow-hidden rounded-2xl shadow-sm cursor-pointer select-none"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      className="flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide"
+      style={{ scrollSnapType: "x mandatory" }}
     >
-      {products.map((product, index) => (
+      {products.map((product) => (
         <button
           key={product.id}
           onClick={product.onCtaClick}
-          className={`absolute inset-0 w-full h-full grid grid-cols-2 items-center text-right transition-opacity duration-700 ${
-            index === active ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
-          }`}
-          style={{ background: "linear-gradient(135deg, #241811 0%, #120C08 100%)" }}
+          className="flex-shrink-0 w-[82%] sm:w-[420px] h-40 sm:h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm cursor-pointer select-none grid grid-cols-2 items-center text-right"
+          style={{
+            background: "linear-gradient(135deg, #241811 0%, #120C08 100%)",
+            scrollSnapAlign: "start",
+          }}
         >
           {/* النص */}
           <div className="px-4 sm:px-6 flex flex-col items-end order-2">
@@ -91,22 +53,6 @@ export default function FeaturedCarousel({ products, autoPlayMs = 4500 }: Featur
           </div>
         </button>
       ))}
-
-      {/* نقاط التنقل */}
-      {products.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
-          {products.map((_, index) => (
-            <span
-              key={index}
-              className="h-1 rounded-full transition-all"
-              style={{
-                width: index === active ? "14px" : "5px",
-                backgroundColor: index === active ? "#C68B3C" : "rgba(255,255,255,0.4)",
-              }}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
