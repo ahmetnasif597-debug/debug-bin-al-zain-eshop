@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+
 export interface FeaturedProduct {
   id: string | number;
   nameAr: string;
@@ -8,24 +10,50 @@ export interface FeaturedProduct {
 
 interface FeaturedCarouselProps {
   products: FeaturedProduct[];
+  autoPlayMs?: number; // مدة كل شريحة بالميلي ثانية، افتراضي 6000
 }
 
-export default function FeaturedCarousel({ products }: FeaturedCarouselProps) {
+export default function FeaturedCarousel({ products, autoPlayMs = 6000 }: FeaturedCarouselProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused || products.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % products.length);
+    }, autoPlayMs);
+    return () => clearInterval(timer);
+  }, [isPaused, autoPlayMs, products.length]);
+
+  useEffect(() => {
+    const card = cardRefs.current[activeIndex];
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [activeIndex]);
+
   if (!products || products.length === 0) return null;
 
   return (
     <div
+      ref={containerRef}
       className="flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide"
       style={{ scrollSnapType: "x mandatory" }}
+      onTouchStart={() => setIsPaused(true)}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
     >
-      {products.map((product) => (
+      {products.map((product, index) => (
         <button
           key={product.id}
+          ref={(el) => { cardRefs.current[index] = el; }}
           onClick={product.onCtaClick}
           className="flex-shrink-0 w-[82%] sm:w-[420px] h-40 sm:h-48 md:h-56 rounded-2xl overflow-hidden shadow-sm cursor-pointer select-none grid grid-cols-2 items-center text-right"
           style={{
             background: "linear-gradient(135deg, #241811 0%, #120C08 100%)",
-            scrollSnapAlign: "start",
+            scrollSnapAlign: "center",
           }}
         >
           {/* النص */}
