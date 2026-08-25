@@ -27,6 +27,9 @@ export const productsTable = pgTable("products", {
   purchasePrice: numeric("purchase_price", { precision: 10, scale: 2 }),
   minimumStock: numeric("minimum_stock", { precision: 10, scale: 3 }),
   supplierId: integer("supplier_id").references(() => suppliersTable.id, { onDelete: "set null" }),
+  purchaseUnit: text("purchase_unit"),
+  salesUnit: text("sales_unit"),
+  unitsPerPurchaseUnit: numeric("units_per_purchase_unit", { precision: 12, scale: 3 }),
 });
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({ id: true });

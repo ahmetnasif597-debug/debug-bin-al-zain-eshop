@@ -127,6 +127,15 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'supplier_id') THEN
     ALTER TABLE "products" ADD COLUMN "supplier_id" integer;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'purchase_unit') THEN
+    ALTER TABLE "products" ADD COLUMN "purchase_unit" text;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'sales_unit') THEN
+    ALTER TABLE "products" ADD COLUMN "sales_unit" text;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name = 'units_per_purchase_unit') THEN
+    ALTER TABLE "products" ADD COLUMN "units_per_purchase_unit" numeric(12, 3);
+  END IF;
 END $$;
 --> statement-breakpoint
 
