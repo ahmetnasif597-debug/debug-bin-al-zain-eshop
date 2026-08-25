@@ -15,3 +15,5 @@ export * from "./expenses";
 export * from "./cashTransactions";
 export * from "./payments";
 export * from "./auditLogs";
+export * from "./purchases";
+export * from "./purchaseItems";

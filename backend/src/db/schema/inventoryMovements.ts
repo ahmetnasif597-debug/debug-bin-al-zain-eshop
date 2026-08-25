@@ -5,6 +5,9 @@ export const inventoryMovementsTable = pgTable("inventory_movements", {
   productId: integer("product_id").notNull(),
   movementType: text("movement_type").notNull(),
   quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
+  unit: text("unit"),
+  // Always a positive quantity; movementType determines whether it enters or leaves stock.
+  baseQuantity: numeric("base_quantity", { precision: 12, scale: 3 }),
   quantityBefore: numeric("quantity_before", { precision: 12, scale: 3 }),
   quantityAfter: numeric("quantity_after", { precision: 12, scale: 3 }),
   reason: text("reason"),
