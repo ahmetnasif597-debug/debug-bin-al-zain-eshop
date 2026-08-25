@@ -6,7 +6,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   schema: path.join(__dirname, "./src/db/schema/index.ts"),
-  out: path.join(__dirname, "./drizzle"),
+  // Drizzle Kit resolves `out` relative to its working directory.
+  // Keeping this relative avoids turning an absolute path into `.//home/...`.
+  out: "./drizzle",
   dialect: "postgresql",
   ...(process.env.DATABASE_URL
     ? { dbCredentials: { url: process.env.DATABASE_URL } }

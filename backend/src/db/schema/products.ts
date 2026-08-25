@@ -1,4 +1,5 @@
 import { pgTable, serial, text, numeric, boolean, integer, jsonb } from "drizzle-orm/pg-core";
+import { suppliersTable } from "./suppliers";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -21,6 +22,11 @@ export const productsTable = pgTable("products", {
   allowCustomWeight: boolean("allow_custom_weight").notNull().default(false),
   availableFlavors: jsonb("available_flavors").$type<string[]>(),
   sortOrder: integer("sort_order").notNull().default(0),
+  sku: text("sku").unique(),
+  barcode: text("barcode").unique(),
+  purchasePrice: numeric("purchase_price", { precision: 10, scale: 2 }),
+  minimumStock: numeric("minimum_stock", { precision: 10, scale: 3 }),
+  supplierId: integer("supplier_id").references(() => suppliersTable.id, { onDelete: "set null" }),
 });
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({ id: true });
