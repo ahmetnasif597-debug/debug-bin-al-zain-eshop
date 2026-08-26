@@ -27,6 +27,7 @@ import AdminProducts from "@/pages/admin/products";
 import AdminCategories from "@/pages/admin/categories";
 import AdminBanners from "@/pages/admin/banners";
 import AdminOrders from "@/pages/admin/orders";
+import AdminSales from "@/pages/admin/sales";
 import AdminReports from "@/pages/admin/reports";
 import AdminCustomers from "@/pages/admin/customers";
 import AdminNotifications from "@/pages/admin/notifications";
@@ -99,6 +100,13 @@ function Router() {
         <AdminGuard>
           <AdminLayout>
             <AdminOrders />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/sales">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminSales />
           </AdminLayout>
         </AdminGuard>
       </Route>

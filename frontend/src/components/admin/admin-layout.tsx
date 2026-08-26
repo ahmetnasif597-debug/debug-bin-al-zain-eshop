@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAdmin } from "@/context/admin-context";
-import { LayoutDashboard, Package, Tags, Image, ShoppingBag, Users, LogOut, Menu, X, Bell, Settings, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Package, Tags, Image, ShoppingBag, Users, LogOut, Menu, X, Bell, Settings, BarChart3, Receipt } from "lucide-react";
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/admin/categories", label: "الفئات", icon: Tags },
   { href: "/admin/banners", label: "البانرات", icon: Image },
   { href: "/admin/orders", label: "الطلبات", icon: ShoppingBag, alertKey: "orders" },
+  { href: "/admin/sales", label: "المبيعات", icon: Receipt },
   { href: "/admin/reports", label: "التقارير", icon: BarChart3 },
   { href: "/admin/customers", label: "العملاء", icon: Users },
   { href: "/admin/notifications", label: "الإشعارات", icon: Bell },
