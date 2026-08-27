@@ -12,7 +12,6 @@ import {
 import {
   ArrowLeft,
   Banknote,
-  Calculator,
   Check,
   Minus,
   Plus,
@@ -47,7 +46,7 @@ const PRODUCTS: Product[] = [
     category: "قهوة",
     price: 24.5,
     stock: 18,
-    tone: "from-[#dca66e] to-[#a65335]",
+    tone: "from-[#c8874f] to-[#8e442d]",
     shortCode: "ق ع",
   },
   {
@@ -56,7 +55,7 @@ const PRODUCTS: Product[] = [
     category: "بن مختص",
     price: 38,
     stock: 12,
-    tone: "from-[#8d6a51] to-[#41312d]",
+    tone: "from-[#806052] to-[#382b28]",
     shortCode: "ك و",
   },
   {
@@ -65,7 +64,7 @@ const PRODUCTS: Product[] = [
     category: "إضافات",
     price: 16,
     stock: 26,
-    tone: "from-[#9ba86d] to-[#4d6451]",
+    tone: "from-[#91a16a] to-[#53664d]",
     shortCode: "هـ",
   },
   {
@@ -74,7 +73,7 @@ const PRODUCTS: Product[] = [
     category: "قهوة",
     price: 21.75,
     stock: 9,
-    tone: "from-[#c36e50] to-[#6d3431]",
+    tone: "from-[#b85e49] to-[#713733]",
     shortCode: "ت",
   },
   {
@@ -83,25 +82,39 @@ const PRODUCTS: Product[] = [
     category: "بن مختص",
     price: 42.5,
     stock: 7,
-    tone: "from-[#dfc58c] to-[#8b5b3c]",
+    tone: "from-[#d5b97f] to-[#96724d]",
     shortCode: "إ",
   },
   {
     id: 6,
     name: "تمر سكري فاخر",
     category: "ضيافة",
-    price: 18,
+    price: 18.5,
     stock: 31,
-    tone: "from-[#9a6c4f] to-[#58352e]",
+    tone: "from-[#96684d] to-[#54352c]",
     shortCode: "ت س",
   },
 ];
 
 const CUSTOMERS = [
-  { id: "saleh", name: "صالح العتيبي", detail: "حساب نشط" },
-  { id: "mona", name: "منى القحطاني", detail: "آخر شراء منذ ٤ أيام" },
-  { id: "fahad", name: "فهد الزهراني", detail: "حساب نشط" },
+  {
+    id: "saleh",
+    name: "صالح العتيبي",
+    detail: "حساب نشط",
+  },
+  {
+    id: "mona",
+    name: "منى القحطاني",
+    detail: "آخر شراء منذ ٤ أيام",
+  },
+  {
+    id: "fahad",
+    name: "فهد الزهراني",
+    detail: "حساب نشط",
+  },
 ];
+
+const CATEGORIES = ["الكل", "قهوة", "بن مختص", "إضافات", "ضيافة"];
 
 const formatPrice = (value: number) =>
   `${value.toLocaleString("ar-SA", {
@@ -121,6 +134,7 @@ export default function AdminSales() {
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("الكل");
 
   const [cart, setCart] = useState<CartLine[]>([
     {
@@ -138,14 +152,19 @@ export default function AdminSales() {
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("ar");
 
-    if (!term) return PRODUCTS;
+    return PRODUCTS.filter((product) => {
+      const matchesCategory =
+        category === "الكل" || product.category === category;
 
-    return PRODUCTS.filter((product) =>
-      `${product.name} ${product.category}`
-        .toLocaleLowerCase("ar")
-        .includes(term),
-    );
-  }, [search]);
+      const matchesSearch =
+        !term ||
+        `${product.name} ${product.category}`
+          .toLocaleLowerCase("ar")
+          .includes(term);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [search, category]);
 
   const itemCount = cart.reduce(
     (sum, line) => sum + line.quantity,
@@ -229,6 +248,7 @@ export default function AdminSales() {
     setCustomerId("");
     setPaidAmount("");
     setSearch("");
+    setCategory("الكل");
   };
 
   const completeSale = () => {
@@ -266,31 +286,44 @@ export default function AdminSales() {
   return (
     <section
       dir="rtl"
-      className="min-h-full space-y-5 bg-[#f6f2ec] pb-8"
+      className="min-h-full bg-[#f5f0e6] text-[#30231e]"
       data-testid="page-admin-sales"
     >
-      {/* HEADER */}
-      <header className="sticky top-0 z-20 border-b border-[#ded3c8] bg-[#f6f2ec]/95 px-1 py-4 backdrop-blur">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="mb-1 flex items-center gap-2 text-xs font-bold text-[#9a5b45]">
-              <span className="h-2 w-2 rounded-full bg-[#a95b42]" />
-              نقطة البيع
+      {/* TOP BAR */}
+      <header className="sticky top-0 z-30 border-b border-[#70452e] bg-[#713b20] text-white shadow-md">
+        <div className="flex h-[70px] items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+              <Receipt className="h-5 w-5" />
             </div>
 
-            <h1 className="text-2xl font-black text-[#2f2521] sm:text-3xl">
-              مبيعات اليوم
-            </h1>
+            <div>
+              <h1 className="text-xl font-black sm:text-2xl">
+                نقطة البيع
+              </h1>
 
-            <p className="mt-1 text-xs text-[#85756c] sm:text-sm">
-              {formatTime()} · البيع السريع
-            </p>
+              <p className="text-[11px] text-[#ead8c8]">
+                مبيعات اليوم
+              </p>
+            </div>
+          </div>
+
+          <div className="hidden items-center gap-3 sm:flex">
+            <span className="text-sm text-[#ead8c8]">
+              {formatTime()}
+            </span>
+
+            <span className="h-6 w-px bg-white/20" />
+
+            <strong className="text-xl font-black">
+              بن الزين
+            </strong>
           </div>
 
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={startNewSale}
-            className="h-11 w-full rounded-xl border-[#cdbbad] bg-white text-[#704033] hover:bg-[#f5ebe2] lg:w-auto"
+            className="text-white hover:bg-white/10 hover:text-white"
             data-testid="button-new-sale"
           >
             <RotateCcw className="h-4 w-4" />
@@ -299,55 +332,65 @@ export default function AdminSales() {
         </div>
       </header>
 
-      {/* LOCAL MODE */}
-      <div
-        className="rounded-xl border border-[#e3cda8] bg-[#fff8e7] px-4 py-3 text-xs text-[#75552e] sm:text-sm"
-        role="status"
-        data-testid="status-local-mode"
-      >
-        <strong>وضع التجربة:</strong>{" "}
-        المبيعات الحالية محفوظة محلياً داخل الشاشة فقط.
-      </div>
+      {/* MAIN POS */}
+      <div className="mx-auto grid max-w-[1500px] gap-0 xl:grid-cols-[minmax(0,1fr)_410px]">
+        {/* PRODUCTS SIDE */}
+        <main className="min-w-0 border-l border-[#d8cbbd] bg-[#f7f2e8] p-4 sm:p-6">
+          {/* SEARCH + CATEGORIES */}
+          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#987a69]" />
 
-      {/* POS */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-        {/* PRODUCTS */}
-        <div className="min-w-0">
-          <div className="mb-4 flex items-center justify-between">
+              <Input
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+                placeholder="ابحث عن منتج..."
+                className="h-12 rounded-xl border-[#d5c6b8] bg-white pr-12 text-sm shadow-sm"
+                aria-label="البحث عن منتج"
+                data-testid="input-product-search"
+              />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {CATEGORIES.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setCategory(item)}
+                  className={`whitespace-nowrap rounded-xl px-5 py-3 text-sm font-black transition-all ${
+                    category === item
+                      ? "bg-[#743d22] text-white shadow-md"
+                      : "border border-[#d7c8ba] bg-white text-[#795646] hover:bg-[#f1e7dc]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TITLE */}
+          <div className="mb-4 flex items-end justify-between">
             <div>
-              <p className="text-[11px] font-bold tracking-widest text-[#a47767]">
-                الكتالوج
+              <p className="text-xs font-bold tracking-[0.18em] text-[#9b7663]">
+                كتالوج المتجر
               </p>
 
-              <h2 className="text-xl font-black text-[#332621]">
+              <h2 className="mt-1 text-2xl font-black text-[#33251f]">
                 اختر المنتجات
               </h2>
             </div>
 
-            <span className="rounded-full bg-[#eadbcf] px-3 py-1.5 text-xs font-bold text-[#70483b]">
+            <span className="rounded-full bg-[#ead9c9] px-3 py-1.5 text-xs font-black text-[#74462f]">
               {filteredProducts.length} منتجات
             </span>
           </div>
 
-          {/* SEARCH */}
-          <div className="relative mb-4">
-            <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a58a7d]" />
-
-            <Input
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
-              placeholder="ابحث عن منتج..."
-              className="h-12 rounded-2xl border-[#d9c9bd] bg-white pr-12 text-sm shadow-sm placeholder:text-[#a7978d]"
-              aria-label="البحث عن منتج"
-              data-testid="input-product-search"
-            />
-          </div>
-
-          {/* PRODUCTS GRID */}
-          {filteredProducts.length ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {/* PRODUCTS */}
+          {filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {filteredProducts.map((product) => {
                 const line = cart.find(
                   (item) => item.id === product.id,
@@ -358,113 +401,128 @@ export default function AdminSales() {
                     key={product.id}
                     type="button"
                     onClick={() => addProduct(product)}
-                    className="group relative overflow-hidden rounded-2xl border border-[#dfd2c8] bg-white p-2.5 text-right shadow-[0_4px_14px_rgba(65,42,29,0.05)] transition-all hover:-translate-y-1 hover:border-[#ad765f] hover:shadow-[0_8px_22px_rgba(65,42,29,0.1)] active:scale-[0.98]"
+                    className="group relative overflow-hidden rounded-2xl border border-[#d8ccc0] bg-white text-right shadow-[0_4px_12px_rgba(75,45,29,0.07)] transition-all hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(75,45,29,0.13)] active:scale-[0.98]"
                     data-testid={`button-add-product-${product.id}`}
                   >
-                    {/* PRODUCT IMAGE PLACEHOLDER */}
+                    {/* IMAGE */}
                     <div
-                      className={`relative mb-3 flex h-28 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br ${product.tone}`}
+                      className={`relative m-2 h-[125px] overflow-hidden rounded-xl bg-gradient-to-br ${product.tone}`}
                     >
-                      <div className="absolute inset-0 bg-black/5" />
+                      <div className="absolute inset-0 bg-black/10" />
 
-                      <span className="relative text-3xl font-black text-white drop-shadow-md">
-                        {product.shortCode}
-                      </span>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-4xl font-black text-white drop-shadow-lg">
+                          {product.shortCode}
+                        </span>
+                      </div>
 
-                      <div className="absolute bottom-2 left-2 rounded-lg bg-black/20 p-1.5 text-white backdrop-blur-sm">
+                      <div className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-lg bg-black/25 text-white backdrop-blur-sm">
                         <ShoppingBasket className="h-4 w-4" />
                       </div>
+
+                      {line && (
+                        <span className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-[#fff3d2] px-2 text-xs font-black text-[#70412c] shadow">
+                          {line.quantity}
+                        </span>
+                      )}
                     </div>
 
-                    <p className="line-clamp-2 min-h-[40px] text-sm font-extrabold leading-5 text-[#362a25]">
-                      {product.name}
-                    </p>
+                    {/* NAME */}
+                    <div className="px-3 pb-3">
+                      <p className="line-clamp-1 text-sm font-black text-[#30241f]">
+                        {product.name}
+                      </p>
 
-                    <div className="mt-2 flex items-center justify-between gap-1">
-                      <span className="text-sm font-black text-[#9b4f3b]">
-                        {formatPrice(product.price)}
-                      </span>
+                      <div className="mt-2 flex items-center justify-between">
+                        <strong className="text-sm font-black text-[#783d2b]">
+                          {formatPrice(product.price)}
+                        </strong>
+
+                        <span className="text-[10px] text-[#927e72]">
+                          متوفر {product.stock}
+                        </span>
+                      </div>
                     </div>
-
-                    <p className="mt-1 text-[10px] text-[#97847a]">
-                      متوفر {product.stock}
-                    </p>
-
-                    {line && (
-                      <span className="absolute left-3 top-3 flex h-7 min-w-7 items-center justify-center rounded-full bg-[#fff1c9] px-2 text-xs font-black text-[#75432f] shadow-sm">
-                        {line.quantity}
-                      </span>
-                    )}
                   </button>
                 );
               })}
             </div>
           ) : (
             <div
-              className="rounded-2xl border border-dashed border-[#cdb9ab] bg-white px-6 py-16 text-center"
+              className="rounded-2xl border border-dashed border-[#cbb9aa] bg-white py-20 text-center"
               data-testid="empty-product-results"
             >
-              <Search className="mx-auto h-9 w-9 text-[#ad9386]" />
+              <Search className="mx-auto h-10 w-10 text-[#aa9383]" />
 
-              <p className="mt-3 font-bold text-[#574239]">
-                لا توجد منتجات بهذا الاسم
+              <p className="mt-3 font-black text-[#594239]">
+                لا توجد منتجات
               </p>
 
               <button
                 type="button"
-                className="mt-2 text-sm font-bold text-[#9d513e] underline"
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("");
+                  setCategory("الكل");
+                }}
+                className="mt-2 text-sm font-bold text-[#8b4935] underline"
                 data-testid="button-clear-product-search"
               >
                 عرض كل المنتجات
               </button>
             </div>
           )}
-        </div>
+        </main>
 
         {/* INVOICE */}
-        <aside className="overflow-hidden rounded-2xl border border-[#d8c8bc] bg-white shadow-[0_10px_30px_rgba(62,40,29,0.08)] xl:sticky xl:top-24 xl:self-start">
+        <aside className="flex min-h-[calc(100vh-70px)] flex-col bg-white shadow-[-5px_0_20px_rgba(65,40,25,0.08)] xl:sticky xl:top-[70px] xl:h-[calc(100vh-70px)]">
           {/* INVOICE HEADER */}
-          <div className="border-b border-[#e6dcd4] bg-[#f8eee5] px-5 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#704033] text-white shadow-sm">
-                  <Receipt className="h-5 w-5" />
-                </div>
+          <div className="border-b border-[#e4d9d0] bg-[#fbf7f1] px-5 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-[#33251f]">
+                  الفاتورة الحالية
+                </h2>
 
-                <div>
-                  <h2 className="font-black text-[#30231f]">
-                    الفاتورة الحالية
-                  </h2>
-
-                  <p className="text-xs text-[#8d766a]">
-                    {itemCount} قطعة
-                  </p>
-                </div>
+                <p className="mt-1 text-xs text-[#927d70]">
+                  {itemCount} قطعة
+                </p>
               </div>
 
-              <span className="rounded-lg bg-white px-2 py-1 font-mono text-[10px] font-bold text-[#9b7667]">
-                #LOCAL-024
-              </span>
+              <button
+                type="button"
+                onClick={() => setCart([])}
+                className="rounded-lg p-2 text-[#9a7665] hover:bg-[#f4e7dd] hover:text-[#813e2d]"
+                aria-label="تفريغ الفاتورة"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
           {/* CART */}
           <div
-            className="max-h-[380px] overflow-y-auto px-5"
+            className="flex-1 overflow-y-auto px-5"
             data-testid="cart-lines"
           >
             {cart.length ? (
-              <div className="divide-y divide-[#eee4dc]">
+              <div className="divide-y divide-[#eee6df]">
                 {cart.map((line) => (
                   <div
                     key={line.id}
-                    className="py-4"
+                    className="py-5"
                     data-testid={`row-cart-product-${line.id}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-extrabold text-[#382924]">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${line.tone} text-white`}
+                      >
+                        <span className="text-sm font-black">
+                          {line.shortCode}
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-[#352721]">
                           {line.name}
                         </p>
 
@@ -478,7 +536,7 @@ export default function AdminSales() {
                         onClick={() =>
                           removeLine(line.id)
                         }
-                        className="rounded-lg p-2 text-[#b47d70] hover:bg-[#f8e8e3] hover:text-[#9c4435]"
+                        className="rounded-lg p-1.5 text-[#ae8071] hover:bg-[#f7e8e1]"
                         aria-label={`حذف ${line.name}`}
                         data-testid={`button-remove-product-${line.id}`}
                       >
@@ -486,17 +544,17 @@ export default function AdminSales() {
                       </button>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center overflow-hidden rounded-xl border border-[#d8c8bd] bg-[#faf7f3]">
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="flex items-center overflow-hidden rounded-lg border border-[#d9ccc2] bg-[#fbf8f4]">
                         <button
                           type="button"
-                          className="flex h-9 w-9 items-center justify-center text-[#74473a] hover:bg-[#f0e2d8]"
                           onClick={() =>
                             updateQuantity(
                               line.id,
                               "decrease",
                             )
                           }
+                          className="flex h-9 w-9 items-center justify-center text-[#744532] hover:bg-[#eee2d8]"
                           aria-label={`إنقاص كمية ${line.name}`}
                           data-testid={`button-decrease-quantity-${line.id}`}
                         >
@@ -504,7 +562,7 @@ export default function AdminSales() {
                         </button>
 
                         <span
-                          className="min-w-9 text-center text-sm font-black text-[#342620]"
+                          className="min-w-9 text-center text-sm font-black"
                           data-testid={`text-quantity-${line.id}`}
                         >
                           {line.quantity}
@@ -512,13 +570,13 @@ export default function AdminSales() {
 
                         <button
                           type="button"
-                          className="flex h-9 w-9 items-center justify-center text-[#74473a] hover:bg-[#f0e2d8]"
                           onClick={() =>
                             updateQuantity(
                               line.id,
                               "increase",
                             )
                           }
+                          className="flex h-9 w-9 items-center justify-center text-[#744532] hover:bg-[#eee2d8]"
                           aria-label={`زيادة كمية ${line.name}`}
                           data-testid={`button-increase-quantity-${line.id}`}
                         >
@@ -526,74 +584,71 @@ export default function AdminSales() {
                         </button>
                       </div>
 
-                      <p
-                        className="text-sm font-black text-[#713b30]"
+                      <strong
+                        className="text-sm font-black text-[#713927]"
                         data-testid={`text-line-total-${line.id}`}
                       >
                         {formatPrice(
                           line.price * line.quantity,
                         )}
-                      </p>
+                      </strong>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div
-                className="py-16 text-center"
+                className="flex h-full min-h-[300px] flex-col items-center justify-center text-center"
                 data-testid="empty-cart"
               >
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f1e5dc] text-[#a78272]">
-                  <ShoppingBasket className="h-7 w-7" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f1e6dd] text-[#a47c69]">
+                  <ShoppingBasket className="h-8 w-8" />
                 </div>
 
-                <p className="mt-3 text-sm font-bold text-[#62483d]">
+                <p className="mt-4 font-black text-[#594239]">
                   الفاتورة فارغة
                 </p>
 
-                <p className="mt-1 text-xs text-[#9c877c]">
-                  اضغط على أي منتج لإضافته
+                <p className="mt-1 text-xs text-[#9b887d]">
+                  اختر منتجاً لإضافته إلى الفاتورة
                 </p>
               </div>
             )}
           </div>
 
           {/* TOTAL */}
-          <div className="border-t border-[#e5dad1] bg-[#fffdf9] px-5 py-5">
-            <div className="flex items-center justify-between text-sm text-[#806c61]">
+          <div className="border-t border-[#dfd4cc] bg-[#fffdf9] px-5 py-5">
+            <div className="flex items-center justify-between text-sm text-[#806e63]">
               <span>عدد القطع</span>
-              <span className="font-bold">
-                {itemCount}
-              </span>
+              <strong>{itemCount}</strong>
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-sm text-[#806c61]">
+            <div className="mt-3 flex items-center justify-between text-sm text-[#806e63]">
               <span>المجموع الفرعي</span>
 
-              <span
-                className="font-bold"
-                data-testid="text-subtotal"
-              >
+              <span data-testid="text-subtotal">
                 {formatPrice(total)}
               </span>
             </div>
 
-            <div className="mt-4 flex items-end justify-between border-t border-dashed border-[#daccc2] pt-4">
-              <span className="font-black text-[#48352d]">
-                الإجمالي
-              </span>
+            <div className="mt-4 border-t border-dashed border-[#d8cbc1] pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-base font-black text-[#46342c]">
+                  الإجمالي
+                </span>
 
-              <strong
-                className="text-2xl font-black tracking-tight text-[#70392f]"
-                data-testid="text-invoice-total"
-              >
-                {formatPrice(total)}
-              </strong>
+                <strong
+                  className="text-2xl font-black text-[#713927]"
+                  data-testid="text-invoice-total"
+                >
+                  {formatPrice(total)}
+                </strong>
+              </div>
             </div>
 
             {/* PAYMENT */}
             <div className="mt-5">
-              <p className="mb-2 text-xs font-black text-[#684c40]">
+              <p className="mb-2 text-xs font-black text-[#684a3e]">
                 طريقة الدفع
               </p>
 
@@ -603,10 +658,10 @@ export default function AdminSales() {
                   onClick={() =>
                     setPaymentMethod("cash")
                   }
-                  className={`flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-black transition-all ${
+                  className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-black transition-all ${
                     paymentMethod === "cash"
-                      ? "border-[#754236] bg-[#754236] text-white shadow-sm"
-                      : "border-[#d8c8bd] bg-white text-[#76584b] hover:bg-[#f7eee8]"
+                      ? "border-[#713a24] bg-[#713a24] text-white shadow-md"
+                      : "border-[#d7c9bf] bg-white text-[#74594c] hover:bg-[#f6eee8]"
                   }`}
                   data-testid="button-payment-cash"
                 >
@@ -619,10 +674,10 @@ export default function AdminSales() {
                   onClick={() =>
                     setPaymentMethod("debt")
                   }
-                  className={`flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-black transition-all ${
+                  className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-black transition-all ${
                     paymentMethod === "debt"
-                      ? "border-[#754236] bg-[#754236] text-white shadow-sm"
-                      : "border-[#d8c8bd] bg-white text-[#76584b] hover:bg-[#f7eee8]"
+                      ? "border-[#713a24] bg-[#713a24] text-white shadow-md"
+                      : "border-[#d7c9bf] bg-white text-[#74594c] hover:bg-[#f6eee8]"
                   }`}
                   data-testid="button-payment-debt"
                 >
@@ -635,12 +690,12 @@ export default function AdminSales() {
             {/* DEBT */}
             {paymentMethod === "debt" && (
               <div
-                className="mt-4 space-y-3 rounded-xl border border-[#e2c9bb] bg-[#fff7f2] p-3"
+                className="mt-4 space-y-3 rounded-xl border border-[#e1cbbd] bg-[#fff7f1] p-3"
                 data-testid="debt-fields"
               >
                 <div>
                   <label
-                    className="mb-1.5 block text-xs font-bold text-[#70473b]"
+                    className="mb-1.5 block text-xs font-bold text-[#70483b]"
                     htmlFor="customer-select"
                   >
                     الزبون
@@ -652,7 +707,7 @@ export default function AdminSales() {
                   >
                     <SelectTrigger
                       id="customer-select"
-                      className="h-10 border-[#d9b9a8] bg-white"
+                      className="h-10 border-[#d9bbae] bg-white"
                       data-testid="select-debt-customer"
                     >
                       <SelectValue placeholder="اختر حساب الزبون" />
@@ -664,11 +719,7 @@ export default function AdminSales() {
                           key={customer.id}
                           value={customer.id}
                         >
-                          <span>{customer.name}</span>
-
-                          <span className="mr-2 text-xs text-[#a18172]">
-                            · {customer.detail}
-                          </span>
+                          {customer.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -677,7 +728,7 @@ export default function AdminSales() {
 
                 <div>
                   <label
-                    className="mb-1.5 block text-xs font-bold text-[#70473b]"
+                    className="mb-1.5 block text-xs font-bold text-[#70483b]"
                     htmlFor="paid-amount"
                   >
                     المدفوع الآن
@@ -696,7 +747,7 @@ export default function AdminSales() {
                         )
                       }
                       placeholder="0.00"
-                      className="h-10 border-[#d9b9a8] bg-white pl-12 text-left font-mono"
+                      className="h-10 border-[#d9bbae] bg-white pl-12 text-left font-mono"
                       dir="ltr"
                       data-testid="input-paid-amount"
                     />
@@ -707,36 +758,33 @@ export default function AdminSales() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-[#ecd8cc] pt-3">
-                  <span className="text-sm font-bold text-[#845648]">
+                <div className="flex items-center justify-between border-t border-[#ecd9cf] pt-3">
+                  <span className="text-sm font-bold text-[#815446]">
                     المتبقي
                   </span>
 
-                  <span
-                    className="font-black text-[#a34f3c]"
+                  <strong
+                    className="text-[#a34f3c]"
                     data-testid="text-remaining-amount"
                   >
                     {formatPrice(remaining)}
-                  </span>
+                  </strong>
                 </div>
               </div>
             )}
 
             {/* COMPLETE */}
             <Button
-              className="mt-5 h-12 w-full rounded-xl bg-[#70392f] text-base font-black text-white shadow-[0_8px_18px_rgba(112,57,47,0.2)] hover:bg-[#5f2e27]"
               onClick={completeSale}
+              className="mt-5 h-13 w-full rounded-xl bg-[#713a24] text-base font-black text-white shadow-[0_7px_18px_rgba(113,58,36,0.22)] hover:bg-[#60301e]"
               data-testid="button-complete-sale"
             >
               <Check className="h-5 w-5" />
-
               إتمام البيع
-
               <ArrowLeft className="mr-auto h-4 w-4" />
             </Button>
 
-            <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[10px] text-[#a08779]">
-              <Calculator className="h-3.5 w-3.5" />
+            <p className="mt-3 text-center text-[10px] text-[#a18c81]">
               المبالغ محسوبة فورياً
             </p>
           </div>
