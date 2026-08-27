@@ -16,6 +16,7 @@ import {
   Check,
   Grid3x3,
   LayoutDashboard,
+  Menu,
   MessageSquare,
   Minus,
   Package,
@@ -31,6 +32,7 @@ import {
   Trash2,
   Users,
   WalletCards,
+  X,
 } from "lucide-react";
 
 type PaymentMethod = "cash" | "debt";
@@ -199,6 +201,10 @@ export default function AdminSales() {
   const [customerId, setCustomerId] = useState("");
   const [paidAmount, setPaidAmount] = useState("");
 
+  const [mobilePanel, setMobilePanel] = useState<
+    "none" | "nav" | "cart"
+  >("none");
+
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("ar");
 
@@ -357,6 +363,30 @@ export default function AdminSales() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setMobilePanel("nav")}
+              className="flex h-10 w-10 items-center justify-center rounded-xl hover:bg-white/10 lg:hidden"
+              aria-label="فتح قائمة الإدارة"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobilePanel("cart")}
+              className="relative flex h-10 items-center gap-1.5 rounded-xl px-2.5 hover:bg-white/10 lg:hidden"
+              aria-label="فتح الفاتورة"
+            >
+              <ShoppingBasket className="h-5 w-5" />
+
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#ffb454] text-[10px] font-black text-[#4a2c12]">
+                  {itemCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={startNewSale}
               className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-white hover:bg-white/10 sm:flex"
               data-testid="button-new-sale"
@@ -387,11 +417,39 @@ export default function AdminSales() {
         </div>
       </header>
 
+      {/* Backdrop for mobile nav / invoice drawers */}
+      {mobilePanel !== "none" && (
+        <div
+          onClick={() => setMobilePanel("none")}
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          aria-hidden="true"
+        />
+      )}
+
       {/* MAIN LAYOUT: sidebar (right) | invoice (middle) | products (left) */}
-      <div className="mx-auto grid max-w-[1800px] gap-0 xl:grid-cols-[230px_410px_minmax(0,1fr)]">
+      <div className="relative mx-auto max-w-[1800px] lg:grid lg:grid-cols-[230px_410px_minmax(0,1fr)] lg:gap-0">
         {/* ADMIN SIDEBAR */}
-        <nav className="hidden flex-col justify-between bg-gradient-to-b from-[#3c2013] to-[#241207] text-white xl:sticky xl:top-[70px] xl:flex xl:h-[calc(100vh-70px)]">
+        <nav
+          className={`fixed bottom-0 top-0 right-0 z-50 flex w-[260px] max-w-[80%] flex-col justify-between bg-gradient-to-b from-[#3c2013] to-[#241207] text-white transition-transform duration-300 lg:sticky lg:top-[70px] lg:bottom-auto lg:right-auto lg:z-0 lg:h-[calc(100vh-70px)] lg:w-auto lg:max-w-none lg:translate-x-0 ${
+            mobilePanel === "nav" ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
           <div>
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-5 lg:hidden">
+              <strong className="text-sm font-black">
+                لوحة الإدارة
+              </strong>
+
+              <button
+                type="button"
+                onClick={() => setMobilePanel("none")}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white"
+                aria-label="إغلاق القائمة"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
             <div className="flex flex-col items-center gap-2 border-b border-white/10 px-5 py-7 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
                 <Receipt className="h-7 w-7 text-[#ffcf9c]" />
@@ -453,7 +511,11 @@ export default function AdminSales() {
         </nav>
 
         {/* INVOICE */}
-        <aside className="flex min-h-[calc(100vh-70px)] flex-col border-l border-[#e4d9d0] bg-white shadow-[-5px_0_20px_rgba(65,40,25,0.08)] xl:sticky xl:top-[70px] xl:h-[calc(100vh-70px)]">
+        <aside
+          className={`fixed bottom-0 top-0 right-0 z-50 flex w-[88%] max-w-[380px] flex-col border-l border-[#e4d9d0] bg-white shadow-[-5px_0_20px_rgba(65,40,25,0.08)] transition-transform duration-300 lg:sticky lg:top-[70px] lg:bottom-auto lg:right-auto lg:z-0 lg:h-[calc(100vh-70px)] lg:w-auto lg:max-w-none lg:translate-x-0 ${
+            mobilePanel === "cart" ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
           {/* INVOICE HEADER */}
           <div className="border-b border-[#e4d9d0] bg-[#fbf7f1] px-5 py-5">
             <div className="flex items-center justify-between">
@@ -467,14 +529,25 @@ export default function AdminSales() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setCart([])}
-                className="rounded-lg p-2 text-[#9a7665] hover:bg-[#f4e7dd] hover:text-[#813e2d]"
-                aria-label="تفريغ الفاتورة"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setCart([])}
+                  className="rounded-lg p-2 text-[#9a7665] hover:bg-[#f4e7dd] hover:text-[#813e2d]"
+                  aria-label="تفريغ الفاتورة"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMobilePanel("none")}
+                  className="rounded-lg p-2 text-[#9a7665] hover:bg-[#f4e7dd] hover:text-[#813e2d] lg:hidden"
+                  aria-label="إغلاق الفاتورة"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
 
