@@ -12,14 +12,24 @@ import {
 import {
   ArrowLeft,
   Banknote,
+  Bell,
   Check,
+  Grid3x3,
+  LayoutDashboard,
+  MessageSquare,
   Minus,
+  Package,
   Plus,
   Receipt,
   RotateCcw,
   Search,
+  Settings,
   ShoppingBasket,
+  ShoppingCart,
+  Tag,
+  TrendingUp,
   Trash2,
+  Users,
   WalletCards,
 } from "lucide-react";
 
@@ -31,7 +41,7 @@ type Product = {
   category: string;
   price: number;
   stock: number;
-  tone: string;
+  image: string;
   shortCode: string;
 };
 
@@ -42,57 +52,93 @@ type CartLine = Product & {
 const PRODUCTS: Product[] = [
   {
     id: 1,
-    name: "قهوة عربية محمصة",
-    category: "قهوة",
+    name: "هيل أخضر فاخر",
+    category: "إضافات",
     price: 24.5,
-    stock: 18,
-    tone: "from-[#c8874f] to-[#8e442d]",
-    shortCode: "ق ع",
+    stock: 11,
+    image:
+      "https://picsum.photos/seed/cardamom-beanzayn/500/400",
+    shortCode: "هـ",
   },
   {
     id: 2,
     name: "بن كولومبي وسط",
     category: "بن مختص",
     price: 38,
-    stock: 12,
-    tone: "from-[#806052] to-[#382b28]",
+    stock: 2,
+    image:
+      "https://picsum.photos/seed/colombian-beanzayn/500/400",
     shortCode: "ك و",
   },
   {
     id: 3,
-    name: "هيل أخضر فاخر",
-    category: "إضافات",
-    price: 16,
-    stock: 26,
-    tone: "from-[#91a16a] to-[#53664d]",
-    shortCode: "هـ",
+    name: "قهوة عربية محمصة",
+    category: "قهوة",
+    price: 24.5,
+    stock: 2,
+    image:
+      "https://picsum.photos/seed/arabic-coffee-beanzayn/500/400",
+    shortCode: "ق ع",
   },
   {
     id: 4,
-    name: "قهوة تركية ناعمة",
-    category: "قهوة",
-    price: 21.75,
-    stock: 9,
-    tone: "from-[#b85e49] to-[#713733]",
-    shortCode: "ت",
+    name: "تمر سكري فاخر",
+    category: "ضيافة",
+    price: 18.5,
+    stock: 2,
+    image:
+      "https://picsum.photos/seed/dates-beanzayn/500/400",
+    shortCode: "ت س",
   },
   {
     id: 5,
     name: "بن إثيوبي مزهر",
     category: "بن مختص",
-    price: 42.5,
-    stock: 7,
-    tone: "from-[#d5b97f] to-[#96724d]",
+    price: 44.5,
+    stock: 2,
+    image:
+      "https://picsum.photos/seed/ethiopian-beanzayn/500/400",
     shortCode: "إ",
   },
   {
     id: 6,
-    name: "تمر سكري فاخر",
+    name: "قهوة تركية ناعمة",
+    category: "قهوة",
+    price: 21.9,
+    stock: 1,
+    image:
+      "https://picsum.photos/seed/turkish-coffee-beanzayn/500/400",
+    shortCode: "ت",
+  },
+  {
+    id: 7,
+    name: "عسل السدر",
     category: "ضيافة",
-    price: 18.5,
-    stock: 31,
-    tone: "from-[#96684d] to-[#54352c]",
-    shortCode: "ت س",
+    price: 89,
+    stock: 4,
+    image:
+      "https://picsum.photos/seed/sidr-honey-beanzayn/500/400",
+    shortCode: "ع س",
+  },
+  {
+    id: 8,
+    name: "عسل الزهور",
+    category: "ضيافة",
+    price: 75,
+    stock: 5,
+    image:
+      "https://picsum.photos/seed/flower-honey-beanzayn/500/400",
+    shortCode: "ع ز",
+  },
+  {
+    id: 9,
+    name: "بن برازيلي محمصة",
+    category: "بن مختص",
+    price: 36,
+    stock: 3,
+    image:
+      "https://picsum.photos/seed/brazilian-beanzayn/500/400",
+    shortCode: "ب ب",
   },
 ];
 
@@ -116,19 +162,23 @@ const CUSTOMERS = [
 
 const CATEGORIES = ["الكل", "قهوة", "بن مختص", "إضافات", "ضيافة"];
 
+const NAV_ITEMS = [
+  { label: "لوحة التحكم", icon: LayoutDashboard },
+  { label: "المنتجات", icon: Package },
+  { label: "الفئات", icon: Tag },
+  { label: "الطلبات", icon: ShoppingCart },
+  { label: "المبيعات", icon: Receipt, active: true },
+  { label: "التقارير", icon: TrendingUp },
+  { label: "العملاء", icon: Users },
+  { label: "الإشعارات", icon: Bell, badge: 3 },
+  { label: "إعدادات المتجر", icon: Settings },
+];
+
 const formatPrice = (value: number) =>
   `${value.toLocaleString("ar-SA", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })} ر.س`;
-
-const formatTime = () =>
-  new Intl.DateTimeFormat("ar-SA", {
-    day: "numeric",
-    month: "long",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date());
 
 export default function AdminSales() {
   const { toast } = useToast();
@@ -138,7 +188,7 @@ export default function AdminSales() {
 
   const [cart, setCart] = useState<CartLine[]>([
     {
-      ...PRODUCTS[0],
+      ...PRODUCTS[2],
       quantity: 1,
     },
   ]);
@@ -292,189 +342,118 @@ export default function AdminSales() {
       {/* TOP BAR */}
       <header className="sticky top-0 z-30 border-b border-[#70452e] bg-[#713b20] text-white shadow-md">
         <div className="flex h-[70px] items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
               <Receipt className="h-5 w-5" />
             </div>
 
             <div>
               <h1 className="text-xl font-black sm:text-2xl">
-                نقطة البيع
+                نقطة البيع | بن الزين
               </h1>
-
-              <p className="text-[11px] text-[#ead8c8]">
-                مبيعات اليوم
-              </p>
             </div>
           </div>
 
-          <div className="hidden items-center gap-3 sm:flex">
-            <span className="text-sm text-[#ead8c8]">
-              {formatTime()}
-            </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={startNewSale}
+              className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-white hover:bg-white/10 sm:flex"
+              data-testid="button-new-sale"
+            >
+              <RotateCcw className="h-4 w-4" />
+              بيع جديد
+            </button>
 
-            <span className="h-6 w-px bg-white/20" />
+            <button
+              type="button"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl hover:bg-white/10"
+              aria-label="الرسائل"
+            >
+              <MessageSquare className="h-5 w-5" />
+            </button>
 
-            <strong className="text-xl font-black">
-              بن الزين
-            </strong>
+            <button
+              type="button"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl hover:bg-white/10"
+              aria-label="الإشعارات"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#ffb454] text-[10px] font-black text-[#4a2c12]">
+                3
+              </span>
+            </button>
           </div>
-
-          <Button
-            variant="ghost"
-            onClick={startNewSale}
-            className="text-white hover:bg-white/10 hover:text-white"
-            data-testid="button-new-sale"
-          >
-            <RotateCcw className="h-4 w-4" />
-            بيع جديد
-          </Button>
         </div>
       </header>
 
-      {/* MAIN POS */}
-      <div className="mx-auto grid max-w-[1500px] gap-0 xl:grid-cols-[minmax(0,1fr)_410px]">
-        {/* PRODUCTS SIDE */}
-        <main className="min-w-0 border-l border-[#d8cbbd] bg-[#f7f2e8] p-4 sm:p-6">
-          {/* SEARCH + CATEGORIES */}
-          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#987a69]" />
-
-              <Input
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                placeholder="ابحث عن منتج..."
-                className="h-12 rounded-xl border-[#d5c6b8] bg-white pr-12 text-sm shadow-sm"
-                aria-label="البحث عن منتج"
-                data-testid="input-product-search"
-              />
+      {/* MAIN LAYOUT: sidebar (right) | invoice (middle) | products (left) */}
+      <div className="mx-auto grid max-w-[1800px] gap-0 xl:grid-cols-[230px_410px_minmax(0,1fr)]">
+        {/* ADMIN SIDEBAR */}
+        <nav className="hidden flex-col justify-between bg-gradient-to-b from-[#3c2013] to-[#241207] text-white xl:sticky xl:top-[70px] xl:flex xl:h-[calc(100vh-70px)]">
+          <div>
+            <div className="flex flex-col items-center gap-2 border-b border-white/10 px-5 py-7 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+                <Receipt className="h-7 w-7 text-[#ffcf9c]" />
+              </div>
+              <strong className="text-lg font-black">
+                بن الزين
+              </strong>
+              <span className="text-[11px] text-[#c9a98d]">
+                لوحة الإدارة
+              </span>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {CATEGORIES.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setCategory(item)}
-                  className={`whitespace-nowrap rounded-xl px-5 py-3 text-sm font-black transition-all ${
-                    category === item
-                      ? "bg-[#743d22] text-white shadow-md"
-                      : "border border-[#d7c8ba] bg-white text-[#795646] hover:bg-[#f1e7dc]"
-                  }`}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* TITLE */}
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <p className="text-xs font-bold tracking-[0.18em] text-[#9b7663]">
-                كتالوج المتجر
-              </p>
-
-              <h2 className="mt-1 text-2xl font-black text-[#33251f]">
-                اختر المنتجات
-              </h2>
-            </div>
-
-            <span className="rounded-full bg-[#ead9c9] px-3 py-1.5 text-xs font-black text-[#74462f]">
-              {filteredProducts.length} منتجات
-            </span>
-          </div>
-
-          {/* PRODUCTS */}
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-              {filteredProducts.map((product) => {
-                const line = cart.find(
-                  (item) => item.id === product.id,
-                );
+            <ul className="flex flex-col gap-1 px-3 py-4">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
 
                 return (
-                  <button
-                    key={product.id}
-                    type="button"
-                    onClick={() => addProduct(product)}
-                    className="group relative overflow-hidden rounded-2xl border border-[#d8ccc0] bg-white text-right shadow-[0_4px_12px_rgba(75,45,29,0.07)] transition-all hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(75,45,29,0.13)] active:scale-[0.98]"
-                    data-testid={`button-add-product-${product.id}`}
-                  >
-                    {/* IMAGE */}
-                    <div
-                      className={`relative m-2 h-[125px] overflow-hidden rounded-xl bg-gradient-to-br ${product.tone}`}
+                  <li key={item.label}>
+                    <button
+                      type="button"
+                      className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-colors ${
+                        item.active
+                          ? "bg-[#8a4b2c] text-white shadow-md"
+                          : "text-[#d8c3b3] hover:bg-white/5 hover:text-white"
+                      }`}
                     >
-                      <div className="absolute inset-0 bg-black/10" />
+                      <span className="flex items-center gap-3">
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </span>
 
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-4xl font-black text-white drop-shadow-lg">
-                          {product.shortCode}
-                        </span>
-                      </div>
-
-                      <div className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-lg bg-black/25 text-white backdrop-blur-sm">
-                        <ShoppingBasket className="h-4 w-4" />
-                      </div>
-
-                      {line && (
-                        <span className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-[#fff3d2] px-2 text-xs font-black text-[#70412c] shadow">
-                          {line.quantity}
+                      {item.badge && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ffb454] px-1.5 text-[10px] font-black text-[#4a2c12]">
+                          {item.badge}
                         </span>
                       )}
-                    </div>
-
-                    {/* NAME */}
-                    <div className="px-3 pb-3">
-                      <p className="line-clamp-1 text-sm font-black text-[#30241f]">
-                        {product.name}
-                      </p>
-
-                      <div className="mt-2 flex items-center justify-between">
-                        <strong className="text-sm font-black text-[#783d2b]">
-                          {formatPrice(product.price)}
-                        </strong>
-
-                        <span className="text-[10px] text-[#927e72]">
-                          متوفر {product.stock}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
+                    </button>
+                  </li>
                 );
               })}
-            </div>
-          ) : (
-            <div
-              className="rounded-2xl border border-dashed border-[#cbb9aa] bg-white py-20 text-center"
-              data-testid="empty-product-results"
-            >
-              <Search className="mx-auto h-10 w-10 text-[#aa9383]" />
+            </ul>
+          </div>
 
-              <p className="mt-3 font-black text-[#594239]">
-                لا توجد منتجات
-              </p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setCategory("الكل");
-                }}
-                className="mt-2 text-sm font-bold text-[#8b4935] underline"
-                data-testid="button-clear-product-search"
-              >
-                عرض كل المنتجات
-              </button>
+          <div className="border-t border-white/10 p-4">
+            <div className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ffcf9c]/20 text-[#ffcf9c]">
+                👑
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black">
+                  المدير
+                </p>
+                <p className="truncate text-[11px] text-[#c9a98d]">
+                  Administrator
+                </p>
+              </div>
             </div>
-          )}
-        </main>
+          </div>
+        </nav>
 
         {/* INVOICE */}
-        <aside className="flex min-h-[calc(100vh-70px)] flex-col bg-white shadow-[-5px_0_20px_rgba(65,40,25,0.08)] xl:sticky xl:top-[70px] xl:h-[calc(100vh-70px)]">
+        <aside className="flex min-h-[calc(100vh-70px)] flex-col border-l border-[#e4d9d0] bg-white shadow-[-5px_0_20px_rgba(65,40,25,0.08)] xl:sticky xl:top-[70px] xl:h-[calc(100vh-70px)]">
           {/* INVOICE HEADER */}
           <div className="border-b border-[#e4d9d0] bg-[#fbf7f1] px-5 py-5">
             <div className="flex items-center justify-between">
@@ -513,13 +492,11 @@ export default function AdminSales() {
                     data-testid={`row-cart-product-${line.id}`}
                   >
                     <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${line.tone} text-white`}
-                      >
-                        <span className="text-sm font-black">
-                          {line.shortCode}
-                        </span>
-                      </div>
+                      <img
+                        src={line.image}
+                        alt={line.name}
+                        className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                      />
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-black text-[#352721]">
@@ -629,6 +606,11 @@ export default function AdminSales() {
               <span data-testid="text-subtotal">
                 {formatPrice(total)}
               </span>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-sm text-[#806e63]">
+              <span>الضريبة</span>
+              <span>{formatPrice(0)}</span>
             </div>
 
             <div className="mt-4 border-t border-dashed border-[#d8cbc1] pt-4">
@@ -789,6 +771,168 @@ export default function AdminSales() {
             </p>
           </div>
         </aside>
+
+        {/* PRODUCTS SIDE */}
+        <main className="min-w-0 bg-[#f7f2e8] p-4 sm:p-6">
+          {/* SEARCH + CATEGORIES */}
+          <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#987a69]" />
+
+              <Input
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+                placeholder="ابحث عن منتج..."
+                className="h-12 rounded-xl border-[#d5c6b8] bg-white pr-12 text-sm shadow-sm"
+                aria-label="البحث عن منتج"
+                data-testid="input-product-search"
+              />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {CATEGORIES.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setCategory(item)}
+                  className={`whitespace-nowrap rounded-xl px-5 py-3 text-sm font-black transition-all ${
+                    category === item
+                      ? "bg-[#743d22] text-white shadow-md"
+                      : "border border-[#d7c8ba] bg-white text-[#795646] hover:bg-[#f1e7dc]"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TITLE */}
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <p className="text-xs font-bold tracking-[0.18em] text-[#9b7663]">
+                كتالوج المتجر
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black text-[#33251f]">
+                اختر المنتجات
+              </h2>
+            </div>
+
+            <span className="rounded-full bg-[#ead9c9] px-3 py-1.5 text-xs font-black text-[#74462f]">
+              {filteredProducts.length} منتجات
+            </span>
+          </div>
+
+          {/* PRODUCTS */}
+          {filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {filteredProducts.map((product) => {
+                const line = cart.find(
+                  (item) => item.id === product.id,
+                );
+
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => addProduct(product)}
+                    className="group relative overflow-hidden rounded-2xl border border-[#d8ccc0] bg-white text-right shadow-[0_4px_12px_rgba(75,45,29,0.07)] transition-all hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(75,45,29,0.13)] active:scale-[0.98]"
+                    data-testid={`button-add-product-${product.id}`}
+                  >
+                    {/* IMAGE */}
+                    <div className="relative m-2 h-[125px] overflow-hidden rounded-xl bg-[#e7dbcd]">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+
+                      <div className="absolute inset-0 bg-black/10" />
+
+                      <div className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-lg bg-black/25 text-white backdrop-blur-sm">
+                        <ShoppingBasket className="h-4 w-4" />
+                      </div>
+
+                      {line && (
+                        <span className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-[#fff3d2] px-2 text-xs font-black text-[#70412c] shadow">
+                          {line.quantity}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* NAME */}
+                    <div className="px-3 pb-3">
+                      <p className="line-clamp-1 text-sm font-black text-[#30241f]">
+                        {product.name}
+                      </p>
+
+                      <div className="mt-2 flex items-center justify-between">
+                        <strong className="text-sm font-black text-[#783d2b]">
+                          {formatPrice(product.price)}
+                        </strong>
+
+                        <span className="text-[10px] text-[#927e72]">
+                          متوفر {product.stock}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              className="rounded-2xl border border-dashed border-[#cbb9aa] bg-white py-20 text-center"
+              data-testid="empty-product-results"
+            >
+              <Search className="mx-auto h-10 w-10 text-[#aa9383]" />
+
+              <p className="mt-3 font-black text-[#594239]">
+                لا توجد منتجات
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("الكل");
+                }}
+                className="mt-2 text-sm font-bold text-[#8b4935] underline"
+                data-testid="button-clear-product-search"
+              >
+                عرض كل المنتجات
+              </button>
+            </div>
+          )}
+
+          <div className="mt-6 flex items-center gap-2 lg:hidden">
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#d7c8ba] bg-white text-[#795646]"
+              aria-label="تصغير"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#d7c8ba] bg-white text-[#795646]"
+              aria-label="تكبير"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#d7c8ba] bg-white text-[#795646]"
+              aria-label="عرض شبكي"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </button>
+          </div>
+        </main>
       </div>
     </section>
   );
