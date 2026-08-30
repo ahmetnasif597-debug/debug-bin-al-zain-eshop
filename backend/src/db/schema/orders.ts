@@ -1,4 +1,4 @@
-import { pgTable, serial, text, numeric, jsonb, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, numeric, jsonb, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { customersTable } from "./customers";
@@ -21,6 +21,11 @@ export const ordersTable = pgTable("orders", {
   customerPhone: text("customer_phone"),
   items: jsonb("items").$type<OrderItem[]>().notNull(),
   totalPrice: numeric("total_price", { precision: 12, scale: 2 }).notNull(),
+  // NEW: payment fields (safe migration)
+  paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  remainingAmount: numeric("remaining_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  paymentMethod: text("payment_method").notNull().default("cash"),
+  isDebt: boolean("is_debt").notNull().default(false),
   status: text("status").notNull().default("pending"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
