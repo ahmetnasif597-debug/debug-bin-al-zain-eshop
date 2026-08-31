@@ -1,6 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { useAdmin } from "@/context/admin-context";
-import { LayoutDashboard, Package, Tags, Image, ShoppingBag, Users, LogOut, Menu, X, Bell, Settings, BarChart3, Receipt } from "lucide-react";
+import {
+  LayoutDashboard, Package, Tags, Image, ShoppingBag, Users, LogOut, Menu, X, Bell, Settings, BarChart3, Receipt,
+  Calculator, BookOpen, Truck, Building2, Banknote, Warehouse,
+} from "lucide-react";
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -13,11 +16,20 @@ const NAV_ITEMS = [
   { href: "/admin/categories", label: "الفئات", icon: Tags },
   { href: "/admin/banners", label: "البانرات", icon: Image },
   { href: "/admin/orders", label: "الطلبات", icon: ShoppingBag, alertKey: "orders" },
-  { href: "/admin/sales", label: "المبيعات", icon: Receipt },
+  { href: "/admin/sales", label: "نقطة البيع", icon: Receipt },
   { href: "/admin/reports", label: "التقارير", icon: BarChart3 },
   { href: "/admin/customers", label: "العملاء", icon: Users },
   { href: "/admin/notifications", label: "الإشعارات", icon: Bell },
   { href: "/admin/settings", label: "إعدادات المتجر", icon: Settings },
+  // Accounting section
+  { href: "/admin/accounting", label: "المحاسبة", icon: Calculator },
+  { href: "/admin/accounts", label: "الحسابات", icon: BookOpen },
+  { href: "/admin/purchases", label: "المشتريات", icon: Truck },
+  { href: "/admin/suppliers", label: "الموردين", icon: Building2 },
+  { href: "/admin/expenses", label: "المصروفات", icon: Receipt },
+  { href: "/admin/cash", label: "الصندوق", icon: Banknote },
+  { href: "/admin/inventory", label: "المخزون", icon: Warehouse },
+  { href: "/admin/journal-entries", label: "القيود", icon: BookOpen },
 ];
 
 function playAlertSound() {
