@@ -1,89 +1,105 @@
-import { Router } from "express";
-import { db } from "../db/index.js";
-import { purchasesTable, purchaseItemsTable, productsTable, suppliersTable, inventoryMovementsTable } from "../db/schema/index.js";
-import { eq, desc, sql } from "drizzle-orm";
-import { ensureDefaultAccounts, createJournalEntry, getAccountByCode, recordInventoryMovement, recordCashTransaction } from "../lib/accounting.js";
+import { useInventory, useInventoryMovements } from "@/lib/api-client/accounting-hooks";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Warehouse, AlertTriangle } from "lucide-react";
+import { format } from "date-fns";
 
-const router = Router();
+export default function InventoryPage() {
+  const { data: products, isLoading: prodLoading } = useInventory();
+  const { data: movements, isLoading: movLoading } = useInventoryMovements();
 
-function requireAdmin(req: any, res: any): boolean {
-  if (!req.user?.isAdmin) { res.status(401).json({ error: "Unauthorized" }); return false; }
-  return true;
+  return (
+    <div className="space-y-6" dir="rtl">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#713a24] text-white">
+          <Warehouse className="h-5 w-5" />
+        </div>
+        <h1 className="text-2xl font-black text-foreground">المخزون</h1>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border/60 font-bold flex items-center gap-2">
+          <Warehouse className="w-4 h-4" /> المنتجات الحالية
+        </div>
+        {prodLoading ? <div className="p-6 space-y-3"><Skeleton className="h-12 w-full" /></div> : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-border/60">
+                <TableHead className="text-right text-xs font-bold">المنتج</TableHead>
+                <TableHead className="text-right text-xs font-bold">SKU</TableHead>
+                <TableHead className="text-right text-xs font-bold">الكمية</TableHead>
+                <TableHead className="text-right text-xs font-bold">الحد الأدنى</TableHead>
+                <TableHead className="text-right text-xs font-bold">سعر التكلفة</TableHead>
+                <TableHead className="text-right text-xs font-bold">قيمة المخزون</TableHead>
+                <TableHead className="text-right text-xs font-bold">الحالة</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {products?.map((p: any) => (
+                <TableRow key={p.id} className="border-border/60 hover:bg-muted/30">
+                  <TableCell className="text-sm font-bold">{p.nameAr}</TableCell>
+                  <TableCell className="text-sm font-mono">{p.sku || "—"}</TableCell>
+                  <TableCell className="text-sm">{p.stockQuantity.toLocaleString("ar-SY")}</TableCell>
+                  <TableCell className="text-sm">{p.minimumStock.toLocaleString("ar-SY")}</TableCell>
+                  <TableCell className="text-sm">{p.purchasePrice ? p.purchasePrice.toLocaleString("ar-SY") : "—"}</TableCell>
+                  <TableCell className="text-sm font-bold">{p.inventoryValue.toLocaleString("ar-SY")}</TableCell>
+                  <TableCell>
+                    {p.stockQuantity <= p.minimumStock ? (
+                      <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                        <AlertTriangle className="w-3 h-3" /> منخفض
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">متوفر</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!products || products.length === 0) && (
+                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">لا توجد منتجات</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border/60 font-bold">حركة المخزون</div>
+        {movLoading ? <div className="p-6 space-y-3"><Skeleton className="h-12 w-full" /></div> : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-border/60">
+                <TableHead className="text-right text-xs font-bold">المنتج</TableHead>
+                <TableHead className="text-right text-xs font-bold">النوع</TableHead>
+                <TableHead className="text-right text-xs font-bold">الكمية</TableHead>
+                <TableHead className="text-right text-xs font-bold">قبل</TableHead>
+                <TableHead className="text-right text-xs font-bold">بعد</TableHead>
+                <TableHead className="text-right text-xs font-bold">السبب</TableHead>
+                <TableHead className="text-right text-xs font-bold">التاريخ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {movements?.map((m: any) => (
+                <TableRow key={m.id} className="border-border/60 hover:bg-muted/30">
+                  <TableCell className="text-sm">{m.productName}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${m.movementType === "in" ? "bg-emerald-50 text-emerald-700" : m.movementType === "out" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>
+                      {m.movementType === "in" ? "دخول" : m.movementType === "out" ? "خروج" : "تسوية"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm font-bold">{m.quantity.toLocaleString("ar-SY")} {m.unit}</TableCell>
+                  <TableCell className="text-sm">{m.quantityBefore?.toLocaleString("ar-SY") || "—"}</TableCell>
+                  <TableCell className="text-sm">{m.quantityAfter?.toLocaleString("ar-SY") || "—"}</TableCell>
+                  <TableCell className="text-sm">{m.reason}</TableCell>
+                  <TableCell className="text-sm">{format(new Date(m.createdAt), "yyyy/MM/dd HH:mm")}</TableCell>
+                </TableRow>
+              ))}
+              {(!movements || movements.length === 0) && (
+                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">لا توجد حركات</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+    </div>
+  );
 }
-
-router.get("/admin/purchases", async (req: any, res: any) => {
-  if (!requireAdmin(req, res)) return;
-  try {
-    const rows = await db.select({ id: purchasesTable.id, invoiceNumber: purchasesTable.invoiceNumber, supplierId: purchasesTable.supplierId, supplierName: suppliersTable.name, invoiceDate: purchasesTable.invoiceDate, subtotal: purchasesTable.subtotal, discount: purchasesTable.discount, totalAmount: purchasesTable.totalAmount, paidAmount: purchasesTable.paidAmount, remainingAmount: purchasesTable.remainingAmount, paymentMethod: purchasesTable.paymentMethod, status: purchasesTable.status, notes: purchasesTable.notes, createdAt: purchasesTable.createdAt }).from(purchasesTable).leftJoin(suppliersTable, eq(purchasesTable.supplierId, suppliersTable.id)).orderBy(desc(purchasesTable.createdAt));
-    return res.json(rows.map((r) => ({ ...r, subtotal: Number(r.subtotal), discount: Number(r.discount), totalAmount: Number(r.totalAmount), paidAmount: Number(r.paidAmount), remainingAmount: Number(r.remainingAmount) })));
-  } catch (err) { req.log.error({ err }, "Failed to list purchases"); return res.status(500).json({ error: "Internal server error" }); }
-});
-
-router.get("/admin/purchases/:id", async (req: any, res: any) => {
-  if (!requireAdmin(req, res)) return;
-  try {
-    const id = Number(req.params.id);
-    const [purchase] = await db.select().from(purchasesTable).where(eq(purchasesTable.id, id)).limit(1);
-    if (!purchase) return res.status(404).json({ error: "Purchase not found" });
-    const items = await db.select({ id: purchaseItemsTable.id, productId: purchaseItemsTable.productId, productName: productsTable.nameAr, quantity: purchaseItemsTable.quantity, unit: purchaseItemsTable.unit, unitsPerPurchaseUnit: purchaseItemsTable.unitsPerPurchaseUnit, baseQuantity: purchaseItemsTable.baseQuantity, unitPrice: purchaseItemsTable.unitPrice, totalPrice: purchaseItemsTable.totalPrice }).from(purchaseItemsTable).leftJoin(productsTable, eq(purchaseItemsTable.productId, productsTable.id)).where(eq(purchaseItemsTable.purchaseId, id));
-    const [supplier] = await db.select().from(suppliersTable).where(eq(suppliersTable.id, purchase.supplierId)).limit(1);
-    return res.json({ ...purchase, subtotal: Number(purchase.subtotal), discount: Number(purchase.discount), totalAmount: Number(purchase.totalAmount), paidAmount: Number(purchase.paidAmount), remainingAmount: Number(purchase.remainingAmount), supplier, items: items.map((i) => ({ ...i, quantity: Number(i.quantity), unitsPerPurchaseUnit: Number(i.unitsPerPurchaseUnit), baseQuantity: Number(i.baseQuantity), unitPrice: Number(i.unitPrice), totalPrice: Number(i.totalPrice) })) });
-  } catch (err) { req.log.error({ err }, "Failed to get purchase"); return res.status(500).json({ error: "Internal server error" }); }
-});
-
-router.post("/admin/purchases", async (req: any, res: any) => {
-  if (!requireAdmin(req, res)) return;
-  try {
-    const { invoiceNumber, supplierId, invoiceDate, items, discount = 0, paymentMethod = "cash", paidAmount = 0, notes } = req.body;
-    if (!invoiceNumber || !supplierId || !items || !Array.isArray(items) || items.length === 0) return res.status(400).json({ error: "invoiceNumber, supplierId, and items required" });
-    const [supplier] = await db.select().from(suppliersTable).where(eq(suppliersTable.id, supplierId)).limit(1);
-    if (!supplier) return res.status(400).json({ error: "Supplier not found" });
-    let subtotal = 0;
-    for (const item of items) { const qty = Number(item.quantity); const unitPrice = Number(item.unitPrice); const unitsPerPurchaseUnit = Number(item.unitsPerPurchaseUnit || 1); const baseQty = qty * unitsPerPurchaseUnit; subtotal += baseQty * unitPrice; }
-    const totalAmount = subtotal - Number(discount);
-    const remaining = totalAmount - Number(paidAmount);
-    const [purchase] = await db.insert(purchasesTable).values({ invoiceNumber, supplierId, invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(), subtotal: String(subtotal), discount: String(discount), totalAmount: String(totalAmount), paidAmount: String(paidAmount), remainingAmount: String(remaining), paymentMethod, status: "completed", notes: notes ?? null, createdBy: req.user?.isAdmin ? 1 : null }).returning();
-    for (const item of items) {
-      const qty = Number(item.quantity); const unitPrice = Number(item.unitPrice); const unitsPerPurchaseUnit = Number(item.unitsPerPurchaseUnit || 1); const baseQty = qty * unitsPerPurchaseUnit; const itemTotal = baseQty * unitPrice;
-      await db.insert(purchaseItemsTable).values({ purchaseId: purchase.id, productId: item.productId, quantity: String(qty), unit: item.unit || "piece", unitsPerPurchaseUnit: String(unitsPerPurchaseUnit), baseQuantity: String(baseQty), unitPrice: String(unitPrice), totalPrice: String(itemTotal) });
-      const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.productId)).limit(1);
-      if (product) { const oldStock = Number(product.stockQuantity ?? 0); const newStock = oldStock + baseQty; await db.update(productsTable).set({ stockQuantity: String(newStock), inStock: newStock > 0 }).where(eq(productsTable.id, item.productId)); await recordInventoryMovement({ productId: item.productId, movementType: "in", quantity: qty, unit: item.unit || "piece", baseQuantity: baseQty, quantityBefore: oldStock, quantityAfter: newStock, reason: `شراء - فاتورة ${invoiceNumber}`, referenceType: "purchase", referenceId: purchase.id, createdBy: req.user?.isAdmin ? 1 : null }); }
-    }
-    await db.update(suppliersTable).set({ totalPurchases: sql`${suppliersTable.totalPurchases} + ${String(totalAmount)}`, balance: sql`${suppliersTable.balance} + ${String(remaining)}`, totalPaid: sql`${suppliersTable.totalPaid} + ${String(paidAmount)}` }).where(eq(suppliersTable.id, supplierId));
-    await ensureDefaultAccounts();
-    const inventoryAcc = await getAccountByCode("105"); const cashAcc = await getAccountByCode("101"); const suppliersAcc = await getAccountByCode("210");
-    if (inventoryAcc) {
-      const journalLines = [{ accountId: inventoryAcc.id, debit: totalAmount, credit: 0, description: `شراء - ${invoiceNumber}` }];
-      if (Number(paidAmount) > 0 && cashAcc) { journalLines.push({ accountId: cashAcc.id, debit: 0, credit: Number(paidAmount), description: `دفع نقدي - ${invoiceNumber}` }); await recordCashTransaction({ transactionType: "out", amount: Number(paidAmount), description: `دفع لمورد - ${supplier.name} - فاتورة ${invoiceNumber}`, referenceType: "purchase", referenceId: purchase.id, createdBy: req.user?.isAdmin ? 1 : null }); }
-      if (remaining > 0 && suppliersAcc) { journalLines.push({ accountId: suppliersAcc.id, debit: 0, credit: remaining, description: `دين على المورد - ${invoiceNumber}` }); }
-      await createJournalEntry({ description: `فاتورة شراء ${invoiceNumber} - ${supplier.name}`, sourceType: "purchase", sourceId: purchase.id, lines: journalLines, createdBy: req.user?.isAdmin ? 1 : null });
-    }
-    return res.status(201).json({ ...purchase, subtotal: Number(purchase.subtotal), discount: Number(purchase.discount), totalAmount: Number(purchase.totalAmount), paidAmount: Number(purchase.paidAmount), remainingAmount: Number(purchase.remainingAmount) });
-  } catch (err) { req.log.error({ err }, "Failed to create purchase"); return res.status(500).json({ error: "Internal server error" }); }
-});
-
-router.delete("/admin/purchases/:id", async (req: any, res: any) => {
-  if (!requireAdmin(req, res)) return;
-  try {
-    const id = Number(req.params.id);
-    const [purchase] = await db.select().from(purchasesTable).where(eq(purchasesTable.id, id)).limit(1);
-    if (!purchase) return res.status(404).json({ error: "Purchase not found" });
-    const items = await db.select().from(purchaseItemsTable).where(eq(purchaseItemsTable.purchaseId, id));
-    for (const item of items) { const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.productId)).limit(1); if (product) { const oldStock = Number(product.stockQuantity ?? 0); const newStock = oldStock - Number(item.baseQuantity); await db.update(productsTable).set({ stockQuantity: String(Math.max(0, newStock)), inStock: newStock > 0 }).where(eq(productsTable.id, item.productId)); } }
-    await db.update(suppliersTable).set({ totalPurchases: sql`${suppliersTable.totalPurchases} - ${purchase.totalAmount}`, balance: sql`${suppliersTable.balance} - ${purchase.remainingAmount}`, totalPaid: sql`${suppliersTable.totalPaid} - ${purchase.paidAmount}` }).where(eq(suppliersTable.id, purchase.supplierId));
-    await db.delete(purchaseItemsTable).where(eq(purchaseItemsTable.purchaseId, id));
-    await db.delete(inventoryMovementsTable).where(eq(inventoryMovementsTable.referenceId, id));
-    await ensureDefaultAccounts();
-    const inventoryAcc = await getAccountByCode("105"); const cashAcc = await getAccountByCode("101"); const suppliersAcc = await getAccountByCode("210");
-    if (inventoryAcc) {
-      const lines = [{ accountId: inventoryAcc.id, debit: 0, credit: Number(purchase.totalAmount), description: `عكس فاتورة شراء #${purchase.invoiceNumber}` }];
-      if (Number(purchase.paidAmount) > 0 && cashAcc) lines.push({ accountId: cashAcc.id, debit: Number(purchase.paidAmount), credit: 0, description: "عكس دفع نقدي" });
-      if (Number(purchase.remainingAmount) > 0 && suppliersAcc) lines.push({ accountId: suppliersAcc.id, debit: Number(purchase.remainingAmount), credit: 0, description: "عكس دين مورد" });
-      await createJournalEntry({ description: `عكس فاتورة شراء #${purchase.invoiceNumber}`, sourceType: "purchase_reversal", sourceId: id, lines, createdBy: req.user?.isAdmin ? 1 : null });
-    }
-    await db.delete(purchasesTable).where(eq(purchasesTable.id, id));
-    return res.status(204).send();
-  } catch (err) { req.log.error({ err }, "Failed to delete purchase"); return res.status(500).json({ error: "Internal server error" }); }
-});
-
-export default router;
