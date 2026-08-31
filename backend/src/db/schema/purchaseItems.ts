@@ -1,6 +1,8 @@
 import { pgTable, serial, integer, numeric, text, timestamp } from "drizzle-orm/pg-core";
 import { purchasesTable } from "./purchases";
 import { productsTable } from "./products";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
 
 export const purchaseItemsTable = pgTable("purchase_items", {
   id: serial("id").primaryKey(),
@@ -15,4 +17,6 @@ export const purchaseItemsTable = pgTable("purchase_items", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const insertPurchaseItemSchema = createInsertSchema(purchaseItemsTable).omit({ id: true, createdAt: true });
+export type InsertPurchaseItem = z.infer<typeof insertPurchaseItemSchema>;
 export type PurchaseItem = typeof purchaseItemsTable.$inferSelect;
