@@ -1,4 +1,6 @@
 import { pgTable, serial, text, timestamp, integer, numeric } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
 
 export const journalEntriesTable = pgTable("journal_entries", {
   id: serial("id").primaryKey(),
@@ -7,7 +9,7 @@ export const journalEntriesTable = pgTable("journal_entries", {
   description: text("description"),
   sourceType: text("source_type"),
   sourceId: integer("source_id"),
-  status: text("status").notNull().default("draft"),
+  status: text("status").notNull().default("posted"),
   createdBy: integer("created_by"),
   approvedBy: integer("approved_by"),
   approvedAt: timestamp("approved_at"),
@@ -23,5 +25,9 @@ export const journalEntryLinesTable = pgTable("journal_entry_lines", {
   credit: numeric("credit", { precision: 12, scale: 2 }).notNull().default("0"),
 });
 
+export const insertJournalEntrySchema = createInsertSchema(journalEntriesTable).omit({ id: true, createdAt: true });
+export const insertJournalEntryLineSchema = createInsertSchema(journalEntryLinesTable).omit({ id: true });
+export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
+export type InsertJournalEntryLine = z.infer<typeof insertJournalEntryLineSchema>;
 export type JournalEntry = typeof journalEntriesTable.$inferSelect;
 export type JournalEntryLine = typeof journalEntryLinesTable.$inferSelect;
