@@ -1,4 +1,6 @@
 import { pgTable, serial, text, numeric, timestamp, integer } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
 
 export const cashTransactionsTable = pgTable("cash_transactions", {
   id: serial("id").primaryKey(),
@@ -12,4 +14,6 @@ export const cashTransactionsTable = pgTable("cash_transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const insertCashTransactionSchema = createInsertSchema(cashTransactionsTable).omit({ id: true, createdAt: true });
+export type InsertCashTransaction = z.infer<typeof insertCashTransactionSchema>;
 export type CashTransaction = typeof cashTransactionsTable.$inferSelect;
