@@ -32,6 +32,16 @@ import AdminReports from "@/pages/admin/reports";
 import AdminCustomers from "@/pages/admin/customers";
 import AdminNotifications from "@/pages/admin/notifications";
 import AdminSettings from "@/pages/admin/settings";
+// NEW: Accounting pages
+import AdminAccounting from "@/pages/admin/accounting";
+import AdminAccounts from "@/pages/admin/accounts";
+import AdminJournalEntries from "@/pages/admin/journal-entries";
+import AdminPurchases from "@/pages/admin/purchases";
+import AdminSuppliers from "@/pages/admin/suppliers";
+import AdminExpenses from "@/pages/admin/expenses";
+import AdminCash from "@/pages/admin/cash";
+import AdminInventory from "@/pages/admin/inventory";
+
 import LoginPage from "@/pages/login";
 import ProfilePage from "@/pages/profile";
 import OrdersPage from "@/pages/orders";
@@ -135,6 +145,63 @@ function Router() {
         <AdminGuard>
           <AdminLayout>
             <AdminSettings />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      {/* NEW: Accounting Routes */}
+      <Route path="/admin/accounting">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminAccounting />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/accounts">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminAccounts />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/journal-entries">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminJournalEntries />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/purchases">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminPurchases />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/suppliers">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminSuppliers />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/expenses">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminExpenses />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/cash">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminCash />
+          </AdminLayout>
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/inventory">
+        <AdminGuard>
+          <AdminLayout>
+            <AdminInventory />
           </AdminLayout>
         </AdminGuard>
       </Route>
