@@ -1,133 +1,114 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { useHashLocation } from "wouter/use-hash-location";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { CartProvider } from "@/context/cart-context";
-import { AdminProvider } from "@/context/admin-context";
-import { StoreStatusProvider } from "@/context/store-status-context";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
-import { BottomNav } from "@/components/layout/bottom-nav";
-import { AdminGuard } from "@/components/admin/admin-guard";
-import { AdminLayout } from "@/components/admin/admin-layout";
-import { StoreStatusBanner } from "@/components/store-status-banner";
-import { InstallPrompt } from "@/components/install-prompt";
+import { useEffect, useState } from "react";
+import { Download, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-import Home from "@/pages/home";
-import Products from "@/pages/products";
-import ProductDetail from "@/pages/product-detail";
-import Cart from "@/pages/cart";
-import Calculator from "@/pages/calculator";
-import About from "@/pages/about";
-import NotFound from "@/pages/not-found";
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+}
 
-import AdminDashboard from "@/pages/admin/dashboard";
-import AdminProducts from "@/pages/admin/products";
-import AdminCategories from "@/pages/admin/categories";
-import AdminBanners from "@/pages/admin/banners";
-import AdminOrders from "@/pages/admin/orders";
-import AdminSales from "@/pages/admin/sales";
-import AdminReports from "@/pages/admin/reports";
-import AdminCustomers from "@/pages/admin/customers";
-import AdminNotifications from "@/pages/admin/notifications";
-import AdminSettings from "@/pages/admin/settings";
-// Accounting pages
-import AdminAccounting from "@/pages/admin/accounting";
-import AdminAccounts from "@/pages/admin/accounts";
-import AdminJournalEntries from "@/pages/admin/journal-entries";
-import AdminPurchases from "@/pages/admin/purchases";
-import AdminSuppliers from "@/pages/admin/suppliers";
-import AdminExpenses from "@/pages/admin/expenses";
-import AdminCash from "@/pages/admin/cash";
-import AdminInventory from "@/pages/admin/inventory";
+export function InstallPrompt() {
+  const [installEvent, setInstallEvent] =
+    useState<BeforeInstallPromptEvent | null>(null);
 
-import LoginPage from "@/pages/login";
-import ProfilePage from "@/pages/profile";
-import OrdersPage from "@/pages/orders";
+  const [visible, setVisible] = useState(false);
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: (failureCount, error: unknown) => {
-        const status = (error as { status?: number; response?: { status?: number } })?.status
-          ?? (error as { response?: { status?: number } })?.response?.status;
-        if (status === 401 || status === 403) return false;
-        return failureCount < 3;
-      },
-    },
-  },
-});
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
 
-function PublicLayout({ children }: { children: React.ReactNode }) {
+      const installEvent = event as BeforeInstallPromptEvent;
+
+      setInstallEvent(installEvent);
+      setVisible(true);
+    };
+
+    window.addEventListener(
+      "beforeinstallprompt",
+      handleBeforeInstallPrompt
+    );
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt
+      );
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installEvent) return;
+
+    await installEvent.prompt();
+
+    const { outcome } = await installEvent.userChoice;
+
+    if (outcome === "accepted") {
+      setInstallEvent(null);
+      setVisible(false);
+    }
+  };
+
+  const handleClose = () => {
+    setVisible(false);
+  };
+
+  if (!visible || !installEvent) {
+    return null;
+  }
+
   return (
-    <div className="flex flex-col min-h-[100dvh]">
-      <InstallPrompt />
-      <StoreStatusBanner />
-      <Navbar />
-      <main className="flex-grow pb-16 md:pb-0">{children}</main>
-      <Footer />
-      <BottomNav />
+    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md">
+      <div className="rounded-2xl border bg-background p-4 shadow-xl">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <Download className="h-5 w-5 text-primary" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold">
+              ثبّت متجر الزين
+            </h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              أضف المتجر إلى جهازك للوصول إليه بسرعة مثل التطبيق.
+            </p>
+
+            <div className="mt-3 flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleInstall}
+              >
+                تثبيت التطبيق
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleClose}
+              >
+                لاحقًا
+              </Button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClose}
+            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="إغلاق"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Router() {
-  return (
-    <Switch>
-      {/* Admin Routes */}
-      <Route path="/admin"><AdminGuard><AdminLayout><AdminDashboard /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/products"><AdminGuard><AdminLayout><AdminProducts /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/categories"><AdminGuard><AdminLayout><AdminCategories /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/banners"><AdminGuard><AdminLayout><AdminBanners /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/orders"><AdminGuard><AdminLayout><AdminOrders /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/sales"><AdminGuard><AdminLayout><AdminSales /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/reports"><AdminGuard><AdminLayout><AdminReports /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/customers"><AdminGuard><AdminLayout><AdminCustomers /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/notifications"><AdminGuard><AdminLayout><AdminNotifications /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/settings"><AdminGuard><AdminLayout><AdminSettings /></AdminLayout></AdminGuard></Route>
-      {/* Accounting Routes */}
-      <Route path="/admin/accounting"><AdminGuard><AdminLayout><AdminAccounting /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/accounts"><AdminGuard><AdminLayout><AdminAccounts /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/journal-entries"><AdminGuard><AdminLayout><AdminJournalEntries /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/purchases"><AdminGuard><AdminLayout><AdminPurchases /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/suppliers"><AdminGuard><AdminLayout><AdminSuppliers /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/expenses"><AdminGuard><AdminLayout><AdminExpenses /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/cash"><AdminGuard><AdminLayout><AdminCash /></AdminLayout></AdminGuard></Route>
-      <Route path="/admin/inventory"><AdminGuard><AdminLayout><AdminInventory /></AdminLayout></AdminGuard></Route>
-
-      {/* Public Routes */}
-      <Route path="/"><PublicLayout><Home /></PublicLayout></Route>
-      <Route path="/products"><PublicLayout><Products /></PublicLayout></Route>
-      <Route path="/products/:id"><PublicLayout><ProductDetail /></PublicLayout></Route>
-      <Route path="/cart"><PublicLayout><Cart /></PublicLayout></Route>
-      <Route path="/calculator"><PublicLayout><Calculator /></PublicLayout></Route>
-      <Route path="/about"><PublicLayout><About /></PublicLayout></Route>
-      <Route path="/login"><LoginPage /></Route>
-      <Route path="/profile"><PublicLayout><ProfilePage /></PublicLayout></Route>
-      <Route path="/orders"><PublicLayout><OrdersPage /></PublicLayout></Route>
-      <Route><PublicLayout><NotFound /></PublicLayout></Route>
-    </Switch>
-  );
-}
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <StoreStatusProvider>
-          <CartProvider>
-            <AdminProvider>
-              <WouterRouter hook={useHashLocation}>
-                <Router />
-              </WouterRouter>
-              <Toaster />
-            </AdminProvider>
-          </CartProvider>
-        </StoreStatusProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-}
-
-export default App;
+export default InstallPrompt;
