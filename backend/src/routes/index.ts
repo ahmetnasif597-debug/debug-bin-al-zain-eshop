@@ -13,12 +13,6 @@ import reportsRouter from "./reports";
 import bulkImportRouter from "./bulk-import";
 import pushRouter from "./push";
 import bannersRouter from "./banners";
-import accountingRouter from "./accounting";
-import suppliersRouter from "./suppliers";
-import purchasesRouter from "./purchases";
-import expensesRouter from "./expenses";
-import cashRouter from "./cash";
-import inventoryRouter from "./inventory";
 
 const router = Router();
 
@@ -36,11 +30,5 @@ router.use(settingsRouter);
 router.use(reportsRouter);
 router.use(pushRouter);
 router.use(bannersRouter);
-router.use(accountingRouter);
-router.use(suppliersRouter);
-router.use(purchasesRouter);
-router.use(expensesRouter);
-router.use(cashRouter);
-router.use(inventoryRouter);
 
 export default router;
