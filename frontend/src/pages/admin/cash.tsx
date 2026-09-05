@@ -2,16 +2,7 @@ import { useCashBalance, useCashTransactions, usePayments } from "@/lib/api-clie
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Banknote, ArrowDownLeft, ArrowUpRight, CreditCard } from "lucide-react";
-
-function fmtDate(d: string | Date | null) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("ar-SY", { year: "numeric", month: "2-digit", day: "2-digit" });
-}
-
-function fmtDateTime(d: string | Date | null) {
-  if (!d) return "—";
-  return new Date(d).toLocaleString("ar-SY", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-}
+import { format } from "date-fns";
 
 export default function CashPage() {
   const { data: balance, isLoading: balLoading } = useCashBalance();
@@ -20,6 +11,7 @@ export default function CashPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
+      {/* العنوان */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#713a24] text-white">
           <Banknote className="h-5 w-5" />
@@ -27,6 +19,7 @@ export default function CashPage() {
         <h1 className="text-2xl font-black text-foreground">الصندوق / النقدية</h1>
       </div>
 
+      {/* البطاقات */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {balLoading ? <Skeleton className="h-[100px] rounded-2xl" /> : (
           <div className="bg-white rounded-2xl border border-border/60 shadow-sm p-5">
@@ -48,6 +41,7 @@ export default function CashPage() {
         )}
       </div>
 
+      {/* حركة الصندوق */}
       <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-border/60 font-bold">حركة الصندوق</div>
         {txLoading ? (
@@ -94,7 +88,7 @@ export default function CashPage() {
                   <TableCell className="text-muted-foreground">{t.description || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{t.reference || "—"}</TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
-                    {fmtDate(t.transactionDate)}
+                    {t.transactionDate ? format(new Date(t.transactionDate), "yyyy/MM/dd") : "—"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -103,6 +97,7 @@ export default function CashPage() {
         )}
       </div>
 
+      {/* المدفوعات */}
       <div className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-border/60 font-bold flex items-center gap-2">
           <CreditCard className="w-4 h-4" /> المدفوعات
@@ -141,7 +136,7 @@ export default function CashPage() {
                   <TableCell className="text-muted-foreground">{p.description || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{p.orderId || "—"}</TableCell>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
-                    {fmtDateTime(p.paidAt)}
+                    {p.paidAt ? format(new Date(p.paidAt), "yyyy/MM/dd HH:mm") : "—"}
                   </TableCell>
                 </TableRow>
               ))}
