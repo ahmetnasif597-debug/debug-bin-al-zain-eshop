@@ -1,17 +1,3 @@
-import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
-
-export const accountingAccountsTable = pgTable("accounting_accounts", {
-  id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
-  accountType: text("account_type").notNull(),
-  parentId: integer("parent_id"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertAccountingAccountSchema = createInsertSchema(accountingAccountsTable).omit({ id: true, createdAt: true });
-export type InsertAccountingAccount = z.infer<typeof insertAccountingAccountSchema>;
-export type AccountingAccount = typeof accountingAccountsTable.$inferSelect;
+// REMOVED_BY_ROLLBACK
+// This file contained accounting schema definitions added after commit 3d3e3145.
+// Neutralized on branch revert/full-accounting-rollback-20260905 to remove accounting features while preserving history.
