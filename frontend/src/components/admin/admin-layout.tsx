@@ -2,7 +2,6 @@ import { Link, useLocation } from "wouter";
 import { useAdmin } from "@/context/admin-context";
 import {
   LayoutDashboard, Package, Tags, Image, ShoppingBag, Users, LogOut, Menu, X, Bell, Settings, BarChart3, Receipt,
-  Calculator, BookOpen, Truck, Building2, Banknote, Warehouse,
 } from "lucide-react";
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,15 +20,8 @@ const NAV_ITEMS = [
   { href: "/admin/customers", label: "العملاء", icon: Users },
   { href: "/admin/notifications", label: "الإشعارات", icon: Bell },
   { href: "/admin/settings", label: "إعدادات المتجر", icon: Settings },
-  // Accounting section
-  { href: "/admin/accounting", label: "المحاسبة", icon: Calculator },
-  { href: "/admin/accounts", label: "الحسابات", icon: BookOpen },
-  { href: "/admin/purchases", label: "المشتريات", icon: Truck },
-  { href: "/admin/suppliers", label: "الموردين", icon: Building2 },
-  { href: "/admin/expenses", label: "المصروفات", icon: Receipt },
-  { href: "/admin/cash", label: "الصندوق", icon: Banknote },
-  { href: "/admin/inventory", label: "المخزون", icon: Warehouse },
-  { href: "/admin/journal-entries", label: "القيود", icon: BookOpen },
+  // ملاحظة: عناصر المحاسبة (المحاسبة، الحسابات، المشتريات، الموردين، المصروفات، الصندوق، المخزون، القيود)
+  // أُزيلت من القائمة لأن مسارات الـ API الخاصة بها لم تعد موجودة في الباك اند
 ];
 
 function playAlertSound() {

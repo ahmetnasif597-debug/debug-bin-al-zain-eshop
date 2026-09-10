@@ -212,7 +212,7 @@ export default function AdminProducts() {
   }, [filteredProducts, categories]);
 
   // حالة محلية لترتيب السحب والإفلات (منسوخة من groupedByCategory، تتحدث فورًا أثناء السحب)
-  const [localOrder, setLocalOrder] = useState<Map<number, typeof filteredProducts> | null>(null);
+  const [localOrder, setLocalOrder] = useState<Map<number, { categoryName: string; items: typeof filteredProducts }> | null>(null);
   const displayGroups = localOrder ?? groupedByCategory;
 
   const dragItem = useRef<{ categoryId: number; index: number } | null>(null);

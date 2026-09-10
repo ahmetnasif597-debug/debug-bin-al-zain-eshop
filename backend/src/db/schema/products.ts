@@ -1,5 +1,4 @@
 import { pgTable, serial, text, numeric, boolean, integer, jsonb } from "drizzle-orm/pg-core";
-import { suppliersTable } from "./suppliers";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -26,7 +25,9 @@ export const productsTable = pgTable("products", {
   barcode: text("barcode").unique(),
   purchasePrice: numeric("purchase_price", { precision: 10, scale: 2 }),
   minimumStock: numeric("minimum_stock", { precision: 10, scale: 3 }),
-  supplierId: integer("supplier_id").references(() => suppliersTable.id, { onDelete: "set null" }),
+  // supplier_id عمود موجود في قاعدة البيانات لكن جدول suppliers أُزيل من السكيما (rollback)
+  // لا يوجد مرجع FK على مستوى ORM؛ القيد ما زال موجوداً في قاعدة البيانات نفسها
+  supplierId: integer("supplier_id"),
   purchaseUnit: text("purchase_unit"),
   salesUnit: text("sales_unit"),
   unitsPerPurchaseUnit: numeric("units_per_purchase_unit", { precision: 12, scale: 3 }),

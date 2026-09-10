@@ -419,7 +419,7 @@ export default function Cart() {
                 <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-6 border border-green-200 dark:border-green-900/50">
                   سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد وقت التوصيل.
                 </div>
-                <Button size="lg" disabled={storeStatus === "closed" || isSubmitting} className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleWhatsAppCheckout}>
+                <Button size="lg" disabled={isSubmitting} className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleWhatsAppCheckout}>
                   {isSubmitting ? "جاري إرسال الطلب..." : "اطلب عبر واتساب"}
                 </Button>
               </>

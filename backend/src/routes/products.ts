@@ -122,7 +122,22 @@ router.post("/products", async (req: any, res: any) => {
     const body = CreateProductBody.parse(req.body);
     const [row] = await db
       .insert(productsTable)
-      .values({ ...body, price: String(body.price) })
+      .values({
+        nameAr: body.nameAr,
+        nameEn: body.nameEn,
+        descriptionAr: body.descriptionAr ?? null,
+        descriptionEn: body.descriptionEn ?? null,
+        price: String(body.price),
+        unit: body.unit,
+        categoryId: body.categoryId,
+        imageUrl: body.imageUrl ?? null,
+        inStock: body.inStock,
+        featured: body.featured,
+        soldByWeight: body.soldByWeight,
+        availableWeights: body.availableWeights ?? null,
+        allowCustomWeight: body.allowCustomWeight,
+        availableFlavors: body.availableFlavors ?? null,
+      })
       .returning();
 
     const [product] = await db

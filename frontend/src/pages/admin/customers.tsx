@@ -1,5 +1,11 @@
 import { useState, useMemo } from "react";
 import { useListCustomers, getListCustomersQueryKey } from "@/lib/api-client";
+import type { CustomerProfile } from "@/lib/api-client";
+
+// الباك اند يرجع isActive فعلياً في /admin/customers لكن السكيما المولّدة لا تتضمنها
+interface AdminCustomer extends CustomerProfile {
+  isActive: boolean;
+}
 import { useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminCustomers() {
-  const { data: customers, isLoading } = useListCustomers();
+  const { data: customers, isLoading } = useListCustomers<AdminCustomer[]>();
   const [selected, setSelected] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [pwCustomer, setPwCustomer] = useState<any | null>(null);

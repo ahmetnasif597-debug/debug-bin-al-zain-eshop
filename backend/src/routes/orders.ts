@@ -1,17 +1,13 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
-import { ordersTable, productsTable, customersTable, pushSubscriptionsTable } from "../db/schema/index.js";
-import { eq, desc, gt, lt, isNull, sql } from "drizzle-orm";
+import { ordersTable, productsTable, pushSubscriptionsTable } from "../db/schema/index.js";
+import { eq, desc, gt, lt, isNull } from "drizzle-orm";
 import {
   CreateOrderBody, GetOrderParams, ListOrdersQueryParams,
   UpdateOrderStatusBody, UpdateOrderStatusParams,
 } from "../schemas/index.js";
 import { sendPushToSubscriptions } from "../lib/webpush.js";
 import { logger } from "../lib/logger.js";
-import {
-  ensureDefaultAccounts, createJournalEntry, getAccountByCode,
-  recordInventoryMovement, recordCashTransaction, recordPayment,
-} from "../lib/accounting.js";
 
 const router = Router();
 
@@ -41,7 +37,7 @@ router.get("/orders", async (req: any, res: any) => {
     const orders = await db.select().from(ordersTable)
       .where(params.status ? eq(ordersTable.status, params.status) : undefined)
       .orderBy(desc(ordersTable.createdAt));
-    return res.json(orders.map((o) => ({ ...o, totalPrice: Number(o.totalPrice), paidAmount: Number(o.paidAmount), remainingAmount: Number(o.remainingAmount), createdAt: o.createdAt.toISOString() })));
+    return res.json(orders.map((o) => ({ ...o, totalPrice: Number(o.totalPrice), createdAt: o.createdAt.toISOString() })));
   } catch (err) { req.log.error({ err }, "list orders failed"); return res.status(500).json({ error: "Internal server error" }); }
 });
 
@@ -51,20 +47,16 @@ router.post("/orders", async (req: any, res: any) => {
     const coercedBody = {
       ...rawBody,
       totalPrice: Number(rawBody.totalPrice),
-      paidAmount: Number(rawBody.paidAmount ?? rawBody.totalPrice),
-      paymentMethod: rawBody.paymentMethod ?? "cash",
-      isDebt: Boolean(rawBody.isDebt),
       items: Array.isArray(rawBody.items) ? rawBody.items.map((item: any) => ({
         ...item, price: Number(item.price), quantity: Number(item.quantity),
         selectedWeight: item.selectedWeight != null ? Number(item.selectedWeight) : item.selectedWeight,
         lineTotal: item.lineTotal != null ? Number(item.lineTotal) : item.lineTotal,
       })) : rawBody.items,
     };
-    const hasInvalid = Number.isNaN(coercedBody.totalPrice) || Number.isNaN(coercedBody.paidAmount) ||
+    const hasInvalid = Number.isNaN(coercedBody.totalPrice) ||
       (Array.isArray(coercedBody.items) && coercedBody.items.some((i: any) => Number.isNaN(i.price) || Number.isNaN(i.quantity)));
     if (hasInvalid) return res.status(400).json({ error: "Invalid numeric value" });
 
-    const remaining = Math.max(0, coercedBody.totalPrice - coercedBody.paidAmount);
     const body = CreateOrderBody.parse(coercedBody);
 
     const [order] = await db.insert(ordersTable).values({
@@ -77,26 +69,9 @@ router.post("/orders", async (req: any, res: any) => {
         lineTotal: item.lineTotal ?? item.price * item.quantity,
       })),
       totalPrice: String(body.totalPrice),
-      paidAmount: String(coercedBody.paidAmount),
-      remainingAmount: String(remaining),
-      paymentMethod: coercedBody.paymentMethod,
-      isDebt: remaining > 0,
       status: "pending",
       notes: body.notes ?? null,
     }).returning();
-
-    if (remaining > 0 && order.customerId) {
-      await db.update(customersTable).set({
-        balance: sql`${customersTable.balance} + ${String(remaining)}`,
-        totalPurchases: sql`${customersTable.totalPurchases} + ${String(body.totalPrice)}`,
-        totalPaid: sql`${customersTable.totalPaid} + ${String(coercedBody.paidAmount)}`,
-      }).where(eq(customersTable.id, order.customerId));
-    }
-
-    await ensureDefaultAccounts();
-    const cashAcc = await getAccountByCode("101");
-    const customersAcc = await getAccountByCode("110");
-    const salesAcc = await getAccountByCode("401");
 
     for (const item of body.items) {
       const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.productId)).limit(1);
@@ -105,26 +80,7 @@ router.post("/orders", async (req: any, res: any) => {
         const qty = item.quantity * (item.selectedWeight ?? 1);
         const newStock = Math.max(0, oldStock - qty);
         await db.update(productsTable).set({ stockQuantity: String(newStock), inStock: newStock > 0 }).where(eq(productsTable.id, item.productId));
-        await recordInventoryMovement({
-          productId: item.productId, movementType: "out", quantity: qty, unit: product.unit,
-          baseQuantity: qty, quantityBefore: oldStock, quantityAfter: newStock,
-          reason: `بيع - طلب #${order.id}`, referenceType: "order", referenceId: order.id,
-          createdBy: req.user?.customerId ?? null,
-        });
       }
-    }
-
-    if (salesAcc) {
-      const lines = [{ accountId: salesAcc.id, debit: 0, credit: Number(body.totalPrice), description: `مبيعات - طلب #${order.id}` }];
-      if (coercedBody.paidAmount > 0 && cashAcc) {
-        lines.push({ accountId: cashAcc.id, debit: coercedBody.paidAmount, credit: 0, description: "نقدي" });
-        await recordCashTransaction({ transactionType: "in", amount: coercedBody.paidAmount, description: `بيع - طلب #${order.id}`, referenceType: "order", referenceId: order.id });
-      }
-      if (remaining > 0 && customersAcc) {
-        lines.push({ accountId: customersAcc.id, debit: remaining, credit: 0, description: "دين عميل" });
-        await recordPayment({ direction: "in", amount: remaining, paymentMethod: "debt", customerId: order.customerId ?? undefined, referenceType: "order", referenceId: order.id, notes: `دين - طلب #${order.id}` });
-      }
-      await createJournalEntry({ description: `طلب بيع #${order.id} - ${body.customerName || "زبون"}`, sourceType: "order", sourceId: order.id, lines, createdBy: req.user?.customerId ?? null });
     }
 
     db.select().from(pushSubscriptionsTable).where(isNull(pushSubscriptionsTable.customerId))
@@ -134,8 +90,8 @@ router.post("/orders", async (req: any, res: any) => {
       })).catch((err: unknown) => logger.warn({ err }, "Push failed"));
 
     return res.status(201).json({
-      ...order, totalPrice: Number(order.totalPrice), paidAmount: Number(order.paidAmount),
-      remainingAmount: Number(order.remainingAmount), createdAt: order.createdAt.toISOString(),
+      ...order, totalPrice: Number(order.totalPrice),
+      createdAt: order.createdAt.toISOString(),
     });
   } catch (err: any) {
     if (err?.name === "ZodError") { req.log.warn({ err }, "Invalid order"); return res.status(400).json({ error: "Invalid order data", details: err.issues }); }
@@ -148,7 +104,7 @@ router.get("/orders/:id", async (req: any, res: any) => {
     const { id } = GetOrderParams.parse({ id: Number(req.params.id) });
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id));
     if (!order) return res.status(404).json({ error: "Order not found" });
-    return res.json({ ...order, totalPrice: Number(order.totalPrice), paidAmount: Number(order.paidAmount), remainingAmount: Number(order.remainingAmount), createdAt: order.createdAt.toISOString() });
+    return res.json({ ...order, totalPrice: Number(order.totalPrice), createdAt: order.createdAt.toISOString() });
   } catch (err) { req.log.error({ err }, "Get order failed"); return res.status(500).json({ error: "Internal server error" }); }
 });
 
@@ -165,7 +121,7 @@ router.patch("/orders/:id", async (req: any, res: any) => {
         .then((subs) => sendPushToSubscriptions(subs, { title: "تحديث طلبك 📦", body: `${pushText} (طلب #${id})`, url: "/profile", tag: `order-status-${id}` }))
         .catch((err: unknown) => logger.warn({ err }, "Push failed"));
     }
-    return res.json({ ...order, totalPrice: Number(order.totalPrice), paidAmount: Number(order.paidAmount), remainingAmount: Number(order.remainingAmount), createdAt: order.createdAt.toISOString() });
+    return res.json({ ...order, totalPrice: Number(order.totalPrice), createdAt: order.createdAt.toISOString() });
   } catch (err) { req.log.error({ err }, "Update order failed"); return res.status(500).json({ error: "Internal server error" }); }
 });
 
