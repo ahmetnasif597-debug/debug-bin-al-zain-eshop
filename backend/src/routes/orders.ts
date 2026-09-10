@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
-import { ordersTable, productsTable, pushSubscriptionsTable } from "../db/schema/index.js";
+import { ordersTable, pushSubscriptionsTable } from "../db/schema/index.js";
 import { eq, desc, gt, lt, isNull } from "drizzle-orm";
 import {
   CreateOrderBody, GetOrderParams, ListOrdersQueryParams,
@@ -73,15 +73,8 @@ router.post("/orders", async (req: any, res: any) => {
       notes: body.notes ?? null,
     }).returning();
 
-    for (const item of body.items) {
-      const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.productId)).limit(1);
-      if (product) {
-        const oldStock = Number(product.stockQuantity ?? 0);
-        const qty = item.quantity * (item.selectedWeight ?? 1);
-        const newStock = Math.max(0, oldStock - qty);
-        await db.update(productsTable).set({ stockQuantity: String(newStock), inStock: newStock > 0 }).where(eq(productsTable.id, item.productId));
-      }
-    }
+    // ملاحظة: لا يتم إنقاص المخزون تلقائياً عند إنشاء الطلب.
+    // حالة التوفر (in_stock) تُدار يدوياً فقط من لوحة الإدارة.
 
     db.select().from(pushSubscriptionsTable).where(isNull(pushSubscriptionsTable.customerId))
       .then((adminSubs) => sendPushToSubscriptions(adminSubs, {
