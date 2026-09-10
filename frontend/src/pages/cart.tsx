@@ -223,7 +223,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 min-h-screen">
+    <div className="container mx-auto px-4 py-12 pb-40 md:pb-12 min-h-screen">
       <h1 className="text-4xl font-black text-primary mb-8">سلة المشتريات</h1>
 
       <div className="grid lg:grid-cols-3 gap-12">
@@ -245,9 +245,9 @@ export default function Cart() {
                 const hasFlavors = item.flavorBreakdown && item.flavorBreakdown.length > 0;
 
                 return (
-                  <div key={`${item.product.id}-${item.selectedWeight}-${index}`} className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                    <div className="col-span-1 md:col-span-6 flex items-start gap-4">
-                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0 border border-border">
+                  <div key={`${item.product.id}-${item.selectedWeight}-${index}`} className="p-3 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-center">
+                    <div className="col-span-1 md:col-span-6 flex items-start gap-3">
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
                         {item.product.imageUrl ? (
                           <img src={item.product.imageUrl} alt={item.product.nameAr} className="w-full h-full object-cover" />
                         ) : (
@@ -255,9 +255,9 @@ export default function Cart() {
                         )}
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg text-foreground line-clamp-1">{item.product.nameAr}</h3>
+                        <h3 className="font-bold text-base text-foreground line-clamp-1">{item.product.nameAr}</h3>
                         {item.selectedWeight && (
-                          <p className="text-sm text-muted-foreground font-medium mt-0.5">
+                          <p className="text-xs text-muted-foreground font-medium">
                             الوزن: {item.selectedWeight >= 1000 ? `${item.selectedWeight / 1000} كيلو` : `${item.selectedWeight} غ`}
                           </p>
                         )}
@@ -273,7 +273,7 @@ export default function Cart() {
                             ))}
                           </div>
                         )}
-                        <p className="text-primary font-bold mt-1 md:hidden">{itemTotal.toLocaleString("ar-SY")} ل.س</p>
+                        <p className="text-primary font-bold text-sm mt-0.5 md:hidden">{itemTotal.toLocaleString("ar-SY")} ل.س</p>
                       </div>
                     </div>
 
@@ -281,10 +281,10 @@ export default function Cart() {
                       {hasFlavors ? (
                         <span className="text-sm font-bold text-muted-foreground">الإجمالي: {item.quantity}</span>
                       ) : (
-                        <div className="flex items-center bg-background border border-border rounded-lg h-10">
-                          <button onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1), item.selectedWeight)} className="w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-r-lg"><Minus className="w-3 h-3" /></button>
-                          <span className="w-10 text-center font-bold text-sm">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedWeight)} className="w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-l-lg"><Plus className="w-3 h-3" /></button>
+                        <div className="flex items-center bg-background border border-border rounded-lg h-8 md:h-10">
+                          <button onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1), item.selectedWeight)} className="w-8 md:w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-r-lg"><Minus className="w-3 h-3" /></button>
+                          <span className="w-8 md:w-10 text-center font-bold text-sm">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedWeight)} className="w-8 md:w-10 h-full flex items-center justify-center hover:bg-muted text-foreground transition-colors rounded-l-lg"><Plus className="w-3 h-3" /></button>
                         </div>
                       )}
                     </div>
@@ -294,7 +294,7 @@ export default function Cart() {
                     </div>
 
                     <div className="col-span-1 text-left md:text-center absolute left-4 md:static">
-                      <button onClick={() => removeItem(item.product.id, item.selectedWeight)} className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"><Trash2 className="w-5 h-5" /></button>
+                      <button onClick={() => removeItem(item.product.id, item.selectedWeight)} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 );
@@ -427,6 +427,26 @@ export default function Cart() {
           </div>
         </div>
       </div>
+
+      {/* شريط الطلب الثابت أسفل الشاشة (الجوال فقط) — فوق شريط التنقل السفلي */}
+      {storeStatus !== "closed" && (
+        <div
+          className="md:hidden fixed bottom-16 left-0 right-0 z-40 border-t border-primary/20 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur-md"
+          style={{ backgroundColor: "rgba(232, 213, 176, 0.95)" }}
+        >
+          <div className="px-4 py-3">
+            {!userLoading && !user ? (
+              <Button size="lg" className="w-full h-12 text-base font-bold gap-2" asChild>
+                <Link href="/login"><LogIn className="w-5 h-5" />سجّل الدخول لإتمام الطلب</Link>
+              </Button>
+            ) : (
+              <Button size="lg" disabled={isSubmitting} className="w-full h-12 text-base font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleWhatsAppCheckout}>
+                {isSubmitting ? "جاري إرسال الطلب..." : "اطلب عبر واتساب"}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
