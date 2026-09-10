@@ -405,9 +405,11 @@ export default function Cart() {
                   <LogIn className="w-4 h-4 flex-shrink-0" />
                   يجب تسجيل الدخول أولاً لإتمام الطلب
                 </div>
-                <Button size="lg" className="w-full h-14 text-lg font-bold gap-2" asChild>
-                  <Link href="/login"><LogIn className="w-5 h-5" />تسجيل الدخول</Link>
-                </Button>
+                <div className="hidden md:block">
+                  <Button size="lg" className="w-full h-14 text-lg font-bold gap-2" asChild>
+                    <Link href="/login"><LogIn className="w-5 h-5" />تسجيل الدخول</Link>
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -416,12 +418,15 @@ export default function Cart() {
                     <XCircle className="w-4 h-4 flex-shrink-0" />{validationError}
                   </div>
                 )}
-                <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-6 border border-green-200 dark:border-green-900/50">
+                <div className="bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 p-4 rounded-xl text-sm font-medium mb-4 md:mb-6 border border-green-200 dark:border-green-900/50">
                   سيتم إرسال تفاصيل طلبك عبر واتساب لتأكيد وقت التوصيل.
                 </div>
-                <Button size="lg" disabled={isSubmitting} className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleWhatsAppCheckout}>
-                  {isSubmitting ? "جاري إرسال الطلب..." : "اطلب عبر واتساب"}
-                </Button>
+                {/* زر الطلب داخل البطاقة للشاشات الكبيرة فقط — على الجوال يظهر في الشريط الثابت أسفل الشاشة */}
+                <div className="hidden md:block">
+                  <Button size="lg" disabled={isSubmitting} className="w-full h-14 text-lg font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleWhatsAppCheckout}>
+                    {isSubmitting ? "جاري إرسال الطلب..." : "اطلب عبر واتساب"}
+                  </Button>
+                </div>
               </>
             )}
           </div>
@@ -434,14 +439,20 @@ export default function Cart() {
           className="md:hidden fixed bottom-16 left-0 right-0 z-40 border-t border-primary/20 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur-md"
           style={{ backgroundColor: "rgba(232, 213, 176, 0.95)" }}
         >
-          <div className="px-4 py-3">
+          <div className="px-4 py-2.5 flex items-center gap-3">
+            <div className="flex flex-col leading-tight flex-shrink-0">
+              <span className="text-[11px] font-medium text-muted-foreground">المجموع الكلي</span>
+              <span className="text-base font-black text-primary">
+                {grandTotal.toLocaleString("ar-SY")} <span className="text-[10px] font-medium text-muted-foreground">ل.س</span>
+              </span>
+            </div>
             {!userLoading && !user ? (
-              <Button size="lg" className="w-full h-12 text-base font-bold gap-2" asChild>
-                <Link href="/login"><LogIn className="w-5 h-5" />سجّل الدخول لإتمام الطلب</Link>
+              <Button className="flex-1 h-11 text-sm font-bold gap-2" asChild>
+                <Link href="/login"><LogIn className="w-4 h-4" />تسجيل الدخول</Link>
               </Button>
             ) : (
-              <Button size="lg" disabled={isSubmitting} className="w-full h-12 text-base font-bold gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleWhatsAppCheckout}>
-                {isSubmitting ? "جاري إرسال الطلب..." : "اطلب عبر واتساب"}
+              <Button className="flex-1 h-11 text-sm font-bold gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 border-none disabled:opacity-50 disabled:cursor-not-allowed" disabled={isSubmitting} onClick={handleWhatsAppCheckout}>
+                {isSubmitting ? "جاري الإرسال..." : "اطلب عبر واتساب"}
               </Button>
             )}
           </div>
