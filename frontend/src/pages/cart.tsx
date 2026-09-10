@@ -436,7 +436,7 @@ export default function Cart() {
       {/* شريط الطلب الثابت أسفل الشاشة (الجوال فقط) — فوق شريط التنقل السفلي */}
       {storeStatus !== "closed" && (
         <div
-          className="md:hidden fixed bottom-16 left-0 right-0 z-40 border-t border-primary/20 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur-md"
+          className="md:hidden fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 border-t border-primary/20 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur-md"
           style={{ backgroundColor: "rgba(232, 213, 176, 0.95)" }}
         >
           <div className="px-4 py-2.5 flex items-center gap-3">

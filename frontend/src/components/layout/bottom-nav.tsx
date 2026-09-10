@@ -15,7 +15,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-primary/20"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom border-t border-primary/20"
       style={{ backgroundColor: "#e8d5b0" }}
     >
       <div className="flex items-center justify-around h-16">
