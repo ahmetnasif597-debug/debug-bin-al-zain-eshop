@@ -4,8 +4,8 @@
   "description": "متجر بن الزين للقهوة والمكسرات",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4A3525",
+  "background_color": "#F4EBD7",
+  "theme_color": "#F4EBD7",
   "orientation": "portrait",
   "icons": [
     {
