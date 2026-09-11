@@ -38,6 +38,9 @@ import OrdersPage from "@/pages/orders";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      // Cached data stays "fresh" for 4 minutes, so navigating back to a page
+      // (products, categories, banners) reuses the cache instead of refetching.
+      staleTime: 4 * 60 * 1000,
       retry: (failureCount, error: unknown) => {
         const status = (error as { status?: number; response?: { status?: number } })?.status
           ?? (error as { response?: { status?: number } })?.response?.status;

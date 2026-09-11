@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { useListProducts, useListCategories } from "@/lib/api-client";
+import { keepPreviousData } from "@tanstack/react-query";
+import { useListProducts, useListCategories, getListProductsQueryKey } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -16,9 +17,15 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: categories, isLoading: loadingCategories } = useListCategories();
-  const { data: products, isLoading: loadingProducts } = useListProducts(
-    selectedCategoryId ? { categoryId: selectedCategoryId } : {}
-  );
+  // keepPreviousData: while fetching a new category, keep showing the previous
+  // list instead of flashing the skeleton grid on every category switch.
+  const productsParams = selectedCategoryId ? { categoryId: selectedCategoryId } : {};
+  const { data: products, isLoading: loadingProducts } = useListProducts(productsParams, {
+    query: {
+      queryKey: getListProductsQueryKey(productsParams),
+      placeholderData: keepPreviousData,
+    },
+  });
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
