@@ -23,7 +23,13 @@ export function Footer() {
           {/* Our Location */}
           <div>
             <h4 className="text-base font-black mb-5 text-secondary tracking-wide uppercase">موقعنا</h4>
-            <div className="flex items-start gap-3">
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=54W8%2BWFM,+Aleppo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-3 cursor-pointer hover:opacity-80 active:scale-[0.99] transition"
+              aria-label="موقعنا على خرائط جوجل"
+            >
               <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <MapPin className="w-4 h-4 text-secondary" />
               </div>
@@ -33,7 +39,7 @@ export function Footer() {
                 </p>
                 <p className="text-primary-foreground/70 text-xs">مقابل أحذية الآغا</p>
               </div>
-            </div>
+            </a>
           </div>
 
           {/* Contact Info */}
