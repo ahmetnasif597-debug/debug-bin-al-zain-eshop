@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { UserCircle2, Settings, LogOut, Package, Download } from "lucide-react";
+import { UserCircle2, Settings, LogOut, Package, Download, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -177,6 +177,16 @@ export default function ProfilePage() {
           >
             <Download className="w-4 h-4" />
             تحميل تطبيق متجر الزين
+          </button>
+        </div>
+
+        <div className="relative z-10 mt-3">
+          <button
+            onClick={() => setLocation("/about")}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm border border-secondary/40 text-secondary hover:bg-secondary/5 active:scale-[0.99] transition"
+          >
+            <Store className="w-4 h-4" />
+            عن المحل وتواصل معنا
           </button>
         </div>
       </div>
