@@ -15,12 +15,12 @@ interface FeaturedCarouselProps {
 
 /**
  * كاروسيل البانرات — سلايدر أفقي باللمس بنمط "peek":
- * كل بطاقة تشغل ~88% من عرض الشاشة بحيث يظهر طرف البطاقة التالية من الجانب،
+ * كل بانر صورة كاملة (graphic جاهز) تملأ البطاقة بالكامل،
  * مع التقاط تلقائي (snap) عند التمرير ونقاط ترقيم تحت السلايدر.
  */
 export default function FeaturedCarousel({ products, autoPlayMs = 6000 }: FeaturedCarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -72,40 +72,24 @@ export default function FeaturedCarousel({ products, autoPlayMs = 6000 }: Featur
         onMouseLeave={() => setIsPaused(false)}
       >
         {products.map((product, index) => (
-          <button
+          <div
             key={product.id}
             ref={(el) => { cardRefs.current[index] = el; }}
             data-index={index}
             onClick={product.onCtaClick}
-            className="flex-shrink-0 min-w-[88%] w-[88%] sm:w-[500px] aspect-[16/8] rounded-2xl overflow-hidden shadow-md cursor-pointer select-none grid grid-cols-2 items-center text-right snap-center"
-            style={{
-              background: "linear-gradient(135deg, #241811 0%, #120C08 100%)",
-            }}
+            role={product.onCtaClick ? "button" : undefined}
+            className="flex-shrink-0 min-w-[88%] w-[88%] sm:w-[500px] aspect-[16/8] rounded-2xl overflow-hidden shadow-md cursor-pointer select-none snap-center"
           >
-            {/* النص */}
-            <div className="px-4 sm:px-6 flex flex-col items-end order-2">
-              <h3 className="text-lg sm:text-2xl md:text-3xl font-black leading-snug" style={{ color: "#F5EDD8" }}>
-                {product.nameAr}
-              </h3>
-              <div className="w-10 h-0.5 my-2" style={{ backgroundColor: "#C68B3C" }} />
-              {product.tagline && (
-                <p className="text-[11px] sm:text-sm font-medium line-clamp-1" style={{ color: "#D8C6AE" }}>
-                  {product.tagline}
-                </p>
-              )}
-            </div>
-
-            {/* الصورة */}
-            <div className="order-1 h-full flex items-center justify-center p-3 sm:p-4">
-              {product.imageUrl && (
-                <img
-                  src={product.imageUrl}
-                  alt={product.nameAr}
-                  className="max-h-full max-w-full object-contain drop-shadow-xl"
-                />
-              )}
-            </div>
-          </button>
+            {/* بانر كامل يملأ البطاقة */}
+            {product.imageUrl && (
+              <img
+                src={product.imageUrl}
+                alt={product.nameAr}
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            )}
+          </div>
         ))}
       </div>
 
