@@ -24,7 +24,7 @@ export function Footer() {
           <div>
             <h4 className="text-base font-black mb-5 text-secondary tracking-wide uppercase">موقعنا</h4>
             <a
-              href="https://www.google.com/maps/search/?api=1&query=54W8%2BWFM,+Aleppo"
+              href="https://maps.app.goo.gl/kYdxswjYpwSiC89P6"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-start gap-3 cursor-pointer hover:opacity-80 active:scale-[0.99] transition"
