@@ -87,7 +87,7 @@ export function Footer() {
             <h4 className="text-base font-black mb-5 text-secondary tracking-wide uppercase">تابعنا</h4>
             <div className="flex flex-col gap-3">
               <a
-                href="https://www.instagram.com/zen_cofe?igsh=NWt2eDEwOHZueGFv"
+                href="https://www.instagram.com/alzein.cooffee?stkn=Njl1eXdpdXhiMWow"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 group"

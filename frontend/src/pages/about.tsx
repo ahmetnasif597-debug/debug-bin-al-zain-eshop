@@ -110,7 +110,7 @@ export default function About() {
             <h3 className="text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6 text-center">تابعنا على منصات التواصل</h3>
             <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-6">
               <a
-                href="https://www.instagram.com/zen_cofe?igsh=NWt2eDEwOHZueGFv"
+                href="https://www.instagram.com/alzein.cooffee?stkn=Njl1eXdpdXhiMWow"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-tr from-[#f09433] via-[#e6683c] to-[#bc1888] text-white font-bold rounded-2xl hover:opacity-90 active:scale-[0.99] transition"
