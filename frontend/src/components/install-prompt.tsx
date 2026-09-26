@@ -19,6 +19,7 @@ export function InstallPrompt() {
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
+      console.log("[Install] 📦 beforeinstallprompt أُطلق — التثبيت الأصيل متاح");
 
       const installEvent = event as BeforeInstallPromptEvent;
 
@@ -26,16 +27,36 @@ export function InstallPrompt() {
       setVisible(true);
     };
 
+    const handleAppInstalled = () => {
+      console.log("[Install] ✅ appinstalled — تم تثبيت التطبيق بنجاح");
+      setInstallEvent(null);
+      setVisible(false);
+    };
+
     window.addEventListener(
       "beforeinstallprompt",
       handleBeforeInstallPrompt
     );
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    // تشخيص: إن لم يُطلق الحدث خلال 6 ثوان فالمعايير غير مستوفاة (شاهد الكونسول)
+    const diagTimer = setTimeout(() => {
+      if (!installEvent) {
+        console.warn(
+          "[Install] ⚠️ beforeinstallprompt لم يُطلق خلال 6 ثوان — تحقق من: " +
+          "1) نشاط Service Worker على /sw.js  2) صلاحية /manifest.json  " +
+          "3) عدم وجود حماية Vercel SSO على الرابط",
+        );
+      }
+    }, 6000);
 
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt
       );
+      window.removeEventListener("appinstalled", handleAppInstalled);
+      clearTimeout(diagTimer);
     };
   }, []);
 
@@ -45,6 +66,7 @@ export function InstallPrompt() {
     await installEvent.prompt();
 
     const { outcome } = await installEvent.userChoice;
+    console.log("[Install] 👤 قرار المستخدم:", outcome);
 
     if (outcome === "accepted") {
       setInstallEvent(null);
