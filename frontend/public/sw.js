@@ -4,6 +4,15 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
+// ─── معالج fetch — شرط أساسي ليتعرف كروم على الموقع كتطبيق قابل للتثبيت (WebAPK) ──
+// تمرير شفاف: الشبكة أولاً، ومع فشل الاتصال نُرجع النسخة المخزّنة إن وُجدت
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+
 // ─── استقبال Push ────────────────────────────────────────────────────────────
 self.addEventListener("push", (e) => {
   let payload = { title: "بن الزين", body: "إشعار جديد", url: "/", tag: "default", type: "general" };
