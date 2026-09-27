@@ -173,6 +173,34 @@ router.post("/products", async (req: any, res: any) => {
   }
 });
 
+// تبديل سريع لحالة التوفر — يقبل { inStock } فقط بدون باقي حقول المنتج
+router.patch("/products/:id/stock", async (req: any, res: any) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { id } = GetProductParams.parse({ id: Number(req.params.id) });
+    const inStock = req.body?.inStock;
+    if (typeof inStock !== "boolean") {
+      return res.status(400).json({ error: "inStock must be a boolean" });
+    }
+
+    const [existing] = await db
+      .select({ id: productsTable.id })
+      .from(productsTable)
+      .where(eq(productsTable.id, id));
+    if (!existing) return res.status(404).json({ error: "Product not found" });
+
+    await db
+      .update(productsTable)
+      .set({ inStock })
+      .where(eq(productsTable.id, id));
+
+    return res.json({ ok: true, id, inStock });
+  } catch (err) {
+    req.log.error({ err }, "Failed to toggle product stock");
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // إعادة ترتيب المنتجات (سحب وإفلات)
 router.patch("/products/reorder", async (req: any, res: any) => {
   if (!requireAdmin(req, res)) return;

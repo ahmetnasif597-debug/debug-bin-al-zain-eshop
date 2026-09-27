@@ -79,16 +79,20 @@ export default function AdminProducts() {
   });
 
   // تبديل سريع لحالة التوفر (متوفر / نافد) من قائمة المنتجات
-  // يستخدم fetch مباشرة لتفادي رسالة "تم تعديل المنتج" العامة الخاصة بنافذة التعديل
+  // مسار مخصص PATCH /api/products/:id/stock يقبل { inStock } فقط،
+  // وتُرسل جلسة المسؤول عبر كوكيز الجلسة (credentials: include)
   const toggleAvailability = (product: { id: number; nameAr: string; inStock: boolean }) => {
-    fetch(`/api/products/${product.id}`, {
-      method: "PUT",
+    fetch(`/api/products/${product.id}/stock`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ inStock: !product.inStock }),
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error(String(res.status));
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(body.error ?? `HTTP ${res.status}`);
+        }
         queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
         toast({
           title: !product.inStock
@@ -96,8 +100,8 @@ export default function AdminProducts() {
             : `"${product.nameAr}" أصبح نافداً — اختفى من المتجر`,
         });
       })
-      .catch(() => {
-        toast({ title: "تعذر تغيير حالة التوفر", variant: "destructive" });
+      .catch((err: Error) => {
+        toast({ title: `تعذر تغيير حالة التوفر (${err.message})`, variant: "destructive" });
       });
   };
 
