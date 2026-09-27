@@ -48,13 +48,22 @@ const productSelect = {
   sortOrder: productsTable.sortOrder,
 };
 
+// يُستخدم للتمييز بين طلبات لوحة الإدارة (ترى غير المتوفر) وطلبات المتجر (تُخفيها)
+function isAdminRequest(req: any): boolean {
+  return req.query.includeOutOfStock === "true" && !!req.user?.isAdmin;
+}
+
 router.get("/products/featured", async (req: any, res: any) => {
   try {
+    const conditions = [eq(productsTable.featured, true)];
+    if (!isAdminRequest(req)) {
+      conditions.push(eq(productsTable.inStock, true));
+    }
     const products = await db
       .select(productSelect)
       .from(productsTable)
       .leftJoin(categoriesTable, eq(productsTable.categoryId, categoriesTable.id))
-      .where(eq(productsTable.featured, true))
+      .where(and(...conditions))
       .orderBy(productsTable.id)
       .limit(8);
     return res.json(products);
@@ -83,6 +92,10 @@ router.get("/products", async (req: any, res: any) => {
           ilike(productsTable.nameEn, `%${params.search}%`)
         )!
       );
+    }
+    // المتجر العام: إخفاء المنتجات غير المتوفرة نهائياً. لوحة الإدارة فقط تراها.
+    if (!isAdminRequest(req)) {
+      conditions.push(eq(productsTable.inStock, true));
     }
 
     const products = await db

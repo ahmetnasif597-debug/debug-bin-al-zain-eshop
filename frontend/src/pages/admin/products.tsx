@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon, GripVertical, FileSpreadsheet } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Loader2, Upload, X, Image as ImageIcon, GripVertical, FileSpreadsheet, Eye, EyeOff } from "lucide-react";
 import { BulkImportModal } from "@/components/admin/BulkImportModal";
 
 async function uploadImageToStorage(file: File): Promise<string> {
@@ -39,7 +39,8 @@ async function uploadImageToStorage(file: File): Promise<string> {
 
 export default function AdminProducts() {
   const [search, setSearch] = useState("");
-  const { data: products, isLoading } = useListProducts();
+  // includeOutOfStock: لوحة الإدارة ترى كل المنتجات بما فيها غير المتوفرة (المتجر يخفيها)
+  const { data: products, isLoading } = useListProducts({ includeOutOfStock: true } as any);
   const { data: categories } = useListCategories();
   
   const queryClient = useQueryClient();
@@ -76,6 +77,29 @@ export default function AdminProducts() {
       }
     }
   });
+
+  // تبديل سريع لحالة التوفر (متوفر / نافد) من قائمة المنتجات
+  // يستخدم fetch مباشرة لتفادي رسالة "تم تعديل المنتج" العامة الخاصة بنافذة التعديل
+  const toggleAvailability = (product: { id: number; nameAr: string; inStock: boolean }) => {
+    fetch(`/api/products/${product.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ inStock: !product.inStock }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        toast({
+          title: !product.inStock
+            ? `"${product.nameAr}" أصبح متوفراً ✓`
+            : `"${product.nameAr}" أصبح نافداً — اختفى من المتجر`,
+        });
+      })
+      .catch(() => {
+        toast({ title: "تعذر تغيير حالة التوفر", variant: "destructive" });
+      });
+  };
 
   const [isOpen, setIsOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -331,19 +355,22 @@ export default function AdminProducts() {
                       </div>
                     )}
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                      <img
+                        src={p.imageUrl}
+                        className={`w-12 h-12 rounded-lg object-cover flex-shrink-0 transition-opacity ${!p.inStock ? "opacity-40 grayscale" : ""}`}
+                      />
                     ) : (
-                      <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center text-[10px] text-muted-foreground flex-shrink-0">صورة</div>
+                      <div className={`w-12 h-12 bg-muted rounded-lg flex items-center justify-center text-[10px] text-muted-foreground flex-shrink-0 ${!p.inStock ? "opacity-40 grayscale" : ""}`}>صورة</div>
                     )}
 
-                    <div className="flex-1 min-w-0">
+                    <div className={`flex-1 min-w-0 transition-opacity ${!p.inStock ? "opacity-50" : ""}`}>
                       <div className="font-bold text-sm truncate">{p.nameAr}</div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {p.price.toLocaleString('ar-SY')} ل.س / {p.unit}
                       </div>
                       <div className="flex gap-1.5 mt-1.5">
                         {!p.inStock && (
-                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">نفد</Badge>
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">غير متوفر — مخفي من المتجر</Badge>
                         )}
                         {p.featured && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">مميز</Badge>
@@ -352,6 +379,16 @@ export default function AdminProducts() {
                     </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={p.inStock ? "إخفاء من المتجر (نافد)" : "إظهار في المتجر (متوفر)"}
+                        disabled={updateMutation.isPending}
+                        onClick={() => toggleAvailability(p)}
+                      >
+                        {p.inStock ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpen(p)}>
                         <Edit2 className="w-4 h-4 text-blue-500" />
                       </Button>
