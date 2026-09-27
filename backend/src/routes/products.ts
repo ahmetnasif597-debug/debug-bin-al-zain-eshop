@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ZodError } from "zod";
 import { db, productsTable, categoriesTable } from "../db";
 import { eq, and, ilike, or, sql, asc } from "drizzle-orm";
 import {
@@ -251,6 +252,14 @@ router.put("/products/:id", async (req: any, res: any) => {
 
     return res.json(product);
   } catch (err) {
+    // طلبات جزئية (مثل { inStock } فقط) ترفضها الـ schema — نرجع 400 واضحاً بدل 500
+    // (للتعديل الجزئي استخدم PATCH /api/products/:id/stock)
+    if (err instanceof ZodError) {
+      return res.status(400).json({
+        error: "Invalid product payload — use the full product body, or PATCH /api/products/:id/stock for availability-only updates",
+        details: err.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+      });
+    }
     req.log.error({ err }, "Failed to update product");
     return res.status(500).json({ error: "Internal server error" });
   }
