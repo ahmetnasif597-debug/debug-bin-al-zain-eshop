@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, customersTable } from "../db";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
 import { signToken } from "../lib/jwt.js";
 
@@ -8,8 +9,17 @@ const router = Router();
 const isProduction = process.env.NODE_ENV === "production";
 const SYRIAN_PHONE_REGEX = /^09\d{8}$/;
 
-function hashPassword(password: string): string {
+// تكلفة bcrypt: 12 جولة salt — توازن جيد بين الأمان والأداء لتسجيل الدخول
+const BCRYPT_SALT_ROUNDS = 12;
+
+// هاش قديم (sha256 بـ salt ثابت) — يُستخدم فقط للتحقق من كلمات المرور
+// المخزّنة قبل الانتقال إلى bcrypt، ثم تُرقّى تلقائياً عند أول دخول ناجح
+function legacyHashPassword(password: string): string {
   return createHash("sha256").update(password + "binalzain-salt").digest("hex");
+}
+
+function hashPassword(password: string): string {
+  return bcrypt.hashSync(password, BCRYPT_SALT_ROUNDS);
 }
 
 function normalizePhone(phone: string): string {
@@ -66,7 +76,25 @@ router.post("/auth/login", async (req: any, res: any) => {
     }
     const normalizedPhone = normalizePhone(phone);
     const [customer] = await db.select().from(customersTable).where(eq(customersTable.phone, normalizedPhone)).limit(1);
-    if (!customer || customer.passwordHash !== hashPassword(password)) {
+    if (!customer) {
+      return res.status(401).json({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" });
+    }
+
+    // التحقق من كلمة المرور: bcrypt (الحديث) أو sha256 القديم مع ترقية تلقائية
+    let passwordValid = false;
+    if (customer.passwordHash.startsWith("$2")) {
+      passwordValid = bcrypt.compareSync(password, customer.passwordHash);
+    } else {
+      passwordValid = customer.passwordHash === legacyHashPassword(password);
+      if (passwordValid) {
+        // ترقية شفافة: استبدال الهاش القديم بـ bcrypt عند أول دخول ناجح
+        await db
+          .update(customersTable)
+          .set({ passwordHash: hashPassword(password) })
+          .where(eq(customersTable.id, customer.id));
+      }
+    }
+    if (!passwordValid) {
       return res.status(401).json({ error: "رقم الهاتف أو كلمة المرور غير صحيحة" });
     }
     if (!customer.isActive) {
@@ -152,7 +180,12 @@ router.patch("/auth/profile", async (req: any, res: any) => {
       if (!currentPassword) {
         return res.status(400).json({ error: "يجب إدخال كلمة المرور الحالية" });
       }
-      if (customer.passwordHash !== hashPassword(currentPassword)) {
+      // نفس منطق الدخول: bcrypt حديث أو sha256 قديم
+      const isBcryptHash = customer.passwordHash.startsWith("$2");
+      const currentValid = isBcryptHash
+        ? bcrypt.compareSync(currentPassword, customer.passwordHash)
+        : customer.passwordHash === legacyHashPassword(currentPassword);
+      if (!currentValid) {
         return res.status(400).json({ error: "كلمة المرور الحالية غير صحيحة" });
       }
       if (newPassword.length < 6) {
