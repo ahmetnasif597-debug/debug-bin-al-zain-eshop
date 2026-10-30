@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.SESSION_SECRET ?? "binalzain-dev-secret";
+const SECRET = process.env.SESSION_SECRET;
+if (!SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required");
+}
 const EXPIRES_IN = "7d";
 
 export interface JwtPayload {

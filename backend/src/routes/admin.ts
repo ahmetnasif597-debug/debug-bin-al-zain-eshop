@@ -10,7 +10,9 @@ import { signToken } from "../lib/jwt.js";
 const router = Router();
 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH ?? "";
-const ADMIN_PASSWORD_PLAIN = process.env.ADMIN_PASSWORD ?? "binalzain2024";
+// كلمة مرور الإدارة تأتي من البيئة فقط — لا قيمة افتراضية في الكود
+// (إخفاق مغلق: إن لم تُضبط أي منهما، فالدخول مرفوض دائماً)
+const ADMIN_PASSWORD_PLAIN = process.env.ADMIN_PASSWORD ?? "";
 const isProduction = process.env.NODE_ENV === "production";
 
 function hashPasswordLegacy(password: string): string {
@@ -21,7 +23,7 @@ async function verifyAdminPassword(password: string): Promise<boolean> {
   if (ADMIN_PASSWORD_HASH) {
     return bcrypt.compare(password, ADMIN_PASSWORD_HASH);
   }
-  return password === ADMIN_PASSWORD_PLAIN;
+  return !!ADMIN_PASSWORD_PLAIN && password === ADMIN_PASSWORD_PLAIN;
 }
 
 const loginLimiter = rateLimit({

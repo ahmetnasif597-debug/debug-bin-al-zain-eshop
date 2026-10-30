@@ -101,7 +101,7 @@ cd backend && DATABASE_URL=<your_url> npx drizzle-kit push --config drizzle.conf
 |----------|----------|-------------|
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
 | `ADMIN_PASSWORD_HASH` | ✅ | bcrypt hash of admin panel password |
-| `SESSION_SECRET` | optional | random string for session encryption |
+| `SESSION_SECRET` | ✅ | random string for session encryption (required — server refuses to start without it) |
 | `CLOUDINARY_CLOUD_NAME` | ✅ (for uploads) | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | ✅ (for uploads) | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | ✅ (for uploads) | Cloudinary API secret |
@@ -111,7 +111,7 @@ cd backend && DATABASE_URL=<your_url> npx drizzle-kit push --config drizzle.conf
 
 ## Admin Panel
 
-Access at `/admin`. Default password: `binalzain2024` (change via `ADMIN_PASSWORD_HASH`).
+Access at `/admin`. The password comes from the environment only — set `ADMIN_PASSWORD` or a bcrypt `ADMIN_PASSWORD_HASH`; there is no default in the code.
 
 Features: Dashboard stats, Products, Categories, Orders, Customers, Notifications, Store Settings.
 

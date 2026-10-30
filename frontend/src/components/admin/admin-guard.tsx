@@ -33,7 +33,6 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
         <div className="w-full max-w-md bg-card p-8 rounded-3xl shadow-lg border border-border text-center">
           <div className="text-primary font-black text-4xl mb-2">بن الزين</div>
           <h1 className="text-2xl font-bold text-foreground mb-8">تسجيل الدخول للإدارة</h1>
-          {/* Default password is binalzain2024 */}
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <Input
