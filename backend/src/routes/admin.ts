@@ -2,7 +2,6 @@ import { Router } from "express";
 import { db, productsTable, categoriesTable, ordersTable, customersTable } from "../db";
 import { eq, count } from "drizzle-orm";
 import { AdminLoginBody } from "../schemas";
-import { createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import { signToken } from "../lib/jwt.js";
@@ -15,9 +14,8 @@ const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH ?? "";
 const ADMIN_PASSWORD_PLAIN = process.env.ADMIN_PASSWORD ?? "";
 const isProduction = process.env.NODE_ENV === "production";
 
-function hashPasswordLegacy(password: string): string {
-  return createHash("sha256").update(password + "binalzain-salt").digest("hex");
-}
+// نفس تكلفة bcrypt المستخدمة في routes/auth.ts
+const BCRYPT_SALT_ROUNDS = 12;
 
 async function verifyAdminPassword(password: string): Promise<boolean> {
   if (ADMIN_PASSWORD_HASH) {
@@ -133,7 +131,8 @@ router.post("/admin/customers/:id/reset-password", async (req: any, res: any) =>
   try {
     const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, id)).limit(1);
     if (!customer) return res.status(404).json({ error: "Customer not found" });
-    await db.update(customersTable).set({ passwordHash: hashPasswordLegacy(String(newPassword)) }).where(eq(customersTable.id, id));
+    const passwordHash = await bcrypt.hash(String(newPassword), BCRYPT_SALT_ROUNDS);
+    await db.update(customersTable).set({ passwordHash }).where(eq(customersTable.id, id));
     return res.json({ ok: true, message: "Success! The password has been updated." });
   } catch (err) {
     req.log.error({ err }, "Failed to reset customer password");
